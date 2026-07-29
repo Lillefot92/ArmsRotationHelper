@@ -193,6 +193,25 @@ local function ShouldMaintainSunder()
     return false
 end
 
+local function ShouldMaintainDemoShout()
+    if not Settings().maintainDemoShout then return false end
+    if (State().improvedDemoShoutRank or 0) <= 0 then return false end
+    if not State().inCombat or State().targetTTD < ns.CONFIG.DEMO_SHOUT_MIN_TTD then
+        return false
+    end
+    if not TargetAbilityAvailable("DEMORALIZING_SHOUT") then return false end
+
+    local expiration = State().demoShoutExpiration or 0
+    local remaining = expiration - Now()
+    return expiration == 0 or remaining <= ns.CONFIG.DEMO_SHOUT_REFRESH_AT
+end
+
+local function DemoShoutReason()
+    return "Maintain Improved Demoralizing Shout ("
+        .. (State().improvedDemoShoutRank or 0) .. "/"
+        .. (State().improvedDemoShoutMaxRank or 5) .. ")"
+end
+
 local function ShouldApplyLevelingRend()
     if ImprovedSlamReady() then return false end
     if not TargetAbilityAvailable("REND") then return false end
@@ -322,6 +341,10 @@ local function LevelingSingleTargetDecision()
         return Decision("REND", "Target should live long enough for the bleed")
     end
 
+    if ShouldMaintainDemoShout() then
+        return Decision("DEMORALIZING_SHOUT", DemoShoutReason())
+    end
+
     if ShouldMaintainSunder() then
         return Decision("SUNDER_ARMOR", "Long-lived target filler")
     end
@@ -359,6 +382,10 @@ local function EndgameSingleTargetDecision()
 
     if CanUseOverpower() then
         return Decision("OVERPOWER", "Filler dodge proc")
+    end
+
+    if ShouldMaintainDemoShout() then
+        return Decision("DEMORALIZING_SHOUT", DemoShoutReason())
     end
 
     if ShouldMaintainSunder() then
@@ -419,6 +446,10 @@ local function AoeDecision(enemyCount)
 
     if CanUseOverpower() then
         return Decision("OVERPOWER", "Filler dodge proc")
+    end
+
+    if ShouldMaintainDemoShout() then
+        return Decision("DEMORALIZING_SHOUT", DemoShoutReason())
     end
 
     if Ready("THUNDER_CLAP") and HasRage("THUNDER_CLAP") then

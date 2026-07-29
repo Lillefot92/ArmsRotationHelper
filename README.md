@@ -31,8 +31,8 @@ Arms rhythm:
 2. Mortal Strike.
 3. Whirlwind, while preserving the next Mortal Strike.
 4. Execute as filler below 20% when the core actions are unavailable.
-5. Overpower, assigned Sunder Armor, shout refresh, and Bloodrage as
-   situational filler.
+5. Overpower, assigned Improved Demoralizing Shout, assigned Sunder Armor,
+   shout refresh, and Bloodrage as situational filler.
 
 The AoE model pools enough Rage for Sweeping Strikes before recommending it,
 then favors Whirlwind, Mortal Strike, Execute on the priority target, and
@@ -50,6 +50,10 @@ Execute, worthwhile Rend, optional Sunder assignment, and Bloodrage. At very
 low levels, quiet time between recommendations is expected: keep auto-attacking
 and avoid spending Rage on Heroic Strike unless its queue icon appears.
 
+Improved Demoralizing Shout maintenance is opt-in and is available only when
+the character has at least one point in that talent. It remains a filler
+assignment and never replaces Slam, Mortal Strike, Whirlwind, or Execute.
+
 ## Commands
 
 Use `/arh` or `/armshelper` to open the settings panel. Every setting remains
@@ -65,10 +69,11 @@ available as a slash command for quick access.
 - `/arh swing` - toggle the main-hand swing bar.
 - `/arh queue` - toggle Heroic Strike/Cleave queue advice.
 - `/arh sunder` - toggle the five-stack Sunder Armor assignment.
+- `/arh demo` - toggle talented Demoralizing Shout maintenance.
 - `/arh icon`, `/arh glow`, `/arh cooldowns` - toggle display parts.
 - `/arh test` - preview the high-level display.
 - `/arh sim` - run the complete rotation simulator.
-- `/arh sim leveling|slam|rage|execute|overpower|aoe|cleave` - run one
+- `/arh sim leveling|slam|rage|execute|overpower|demoralizing|aoe|cleave` - run one
   scenario group.
 - `/arh sim next|stop|check|list` - control the simulator or run all automated
   priority checks.
@@ -83,9 +88,9 @@ The panel is available directly through `/arh` and is also linked from
 legacy Interface Options fallback.
 
 Changes apply immediately. The panel includes target mode, assigned shout,
-stance and Sunder options, all display toggles, scale and locking controls,
-display preview, named simulator scenarios, manual simulator steps, and the
-complete 23-check rotation test.
+stance, Sunder, and talented Demoralizing Shout options, all display toggles,
+scale and locking controls, display preview, named simulator scenarios, manual
+simulator steps, and the complete 26-check rotation test.
 
 ## Installation
 

@@ -13,7 +13,7 @@ local BOOKTYPE_SPELL_VALUE = BOOKTYPE_SPELL or "spell"
 local RAGE_POWER_TYPE = (Enum and Enum.PowerType and Enum.PowerType.Rage) or 1
 
 ns.RAGE_POWER_TYPE = RAGE_POWER_TYPE
-ns.VERSION = "1.6.0-beta.3-dev.3"
+ns.VERSION = "1.6.0-beta.3-dev.4"
 
 -- Base-rank spell IDs are used only as stable, locale-independent
 -- identifiers. When an ability is trained, the highest known rank
@@ -78,6 +78,8 @@ ns.CONFIG = {
     SLAM_GCD_WAIT_TOLERANCE   = 0.25,
     IMPROVED_SLAM_MAX_CAST_MS = 750,
     SHOUT_REFRESH_AT          = 5,
+    DEMO_SHOUT_REFRESH_AT     = 3,
+    DEMO_SHOUT_MIN_TTD        = 10,
     REND_MIN_TTD              = 8,
     REND_MAX_TARGET_HP_PCT    = 90,
     SUNDER_MIN_TTD            = 12,
@@ -95,6 +97,14 @@ ns.STANCE = {
     BATTLE = 1,
     DEFENSIVE = 2,
     BERSERKER = 3,
+}
+
+local IMPROVED_DEMO_SHOUT_RANK_SPELLS = {
+    12324,
+    12876,
+    12877,
+    12878,
+    12879,
 }
 
 local ABILITY_STANCES = {
@@ -148,6 +158,9 @@ ns.state = {
     rendExpiration         = 0,
     sunderExpiration       = 0,
     sunderStacks           = 0,
+    demoShoutExpiration    = 0,
+    improvedDemoShoutRank  = 0,
+    improvedDemoShoutMaxRank = 5,
     battleShoutExpiration  = 0,
     commandingExpiration   = 0,
     sweepingExpiration     = 0,
@@ -195,6 +208,7 @@ local function InitDB()
     if db.testMode       == nil then db.testMode = false end
     if db.mode           == nil then db.mode = "auto" end
     if db.maintainSunder == nil then db.maintainSunder = false end
+    if db.maintainDemoShout == nil then db.maintainDemoShout = false end
     if db.assignedShout  == nil then db.assignedShout = "battle" end
 
     if db.mode ~= "auto" and db.mode ~= "single" and db.mode ~= "aoe" then
@@ -554,6 +568,52 @@ function ns.IsImprovedSlamReady()
     return castTime > 0 and castTime <= ns.CONFIG.IMPROVED_SLAM_MAX_CAST_MS
 end
 
+function ns.RefreshTalentState()
+    local rank = 0
+    local maxRank = 5
+    local expectedName = ns.GetSpellName(IMPROVED_DEMO_SHOUT_RANK_SPELLS[1])
+
+    if GetNumTalents and GetTalentInfo then
+        local tabCount = (GetNumTalentTabs and GetNumTalentTabs()) or 3
+        for tabIndex = 1, tabCount do
+            local talentCount = GetNumTalents(tabIndex) or 0
+            for talentIndex = 1, talentCount do
+                local name, icon, tier, column, currentRank, talentMaxRank =
+                    GetTalentInfo(tabIndex, talentIndex)
+                local nameMatches = expectedName and name == expectedName
+                local positionMatches = tabIndex == 2
+                    and tier == 2
+                    and column == 2
+                    and icon == 132366
+
+                if nameMatches or positionMatches then
+                    rank = currentRank or 0
+                    maxRank = talentMaxRank or 5
+                    break
+                end
+            end
+            if rank > 0 then break end
+        end
+    end
+
+    -- Passive talent ranks are also player spells on supported Classic
+    -- clients. This is a fallback for clients whose talent UI is not loaded.
+    if rank == 0 and IsPlayerSpell then
+        for index, spellID in ipairs(IMPROVED_DEMO_SHOUT_RANK_SPELLS) do
+            local ok, known = pcall(IsPlayerSpell, spellID)
+            if ok and known then rank = index end
+        end
+    end
+
+    ns.state.improvedDemoShoutRank = rank
+    ns.state.improvedDemoShoutMaxRank = maxRank
+    return rank, maxRank
+end
+
+function ns.HasImprovedDemoShout()
+    return (ns.state.improvedDemoShoutRank or 0) > 0
+end
+
 -- ------------------------------------------------------------
 -- Enemy and swing tracking
 -- ------------------------------------------------------------
@@ -744,6 +804,7 @@ local function UpdateTargetState(now)
         ns.state.rendExpiration = 0
         ns.state.sunderExpiration = 0
         ns.state.sunderStacks = 0
+        ns.state.demoShoutExpiration = 0
         return
     end
 
@@ -769,6 +830,15 @@ local function UpdateTargetState(now)
     local sunder = ns.FindAura("target", "SUNDER_ARMOR", true)
     ns.state.sunderExpiration = sunder and sunder.expirationTime or 0
     ns.state.sunderStacks = sunder and sunder.applications or 0
+
+    local demoShout = ns.FindAura(
+        "target",
+        "DEMORALIZING_SHOUT",
+        true,
+        "player"
+    )
+    ns.state.demoShoutExpiration =
+        demoShout and demoShout.expirationTime or 0
 
     if ns.state.inCombat and guid then
         ns.state.nearbyEnemies[guid] = now
@@ -906,21 +976,25 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
         InitDB()
         ns.RefreshAbilityMetadata()
         ns.RefreshKnownSpells()
+        ns.RefreshTalentState()
         ns.state.playerGUID = UnitGUID("player")
         ns.ResetSwingTracking()
         ns.RefreshState()
         if ns.Display_ApplySettings then ns.Display_ApplySettings() end
         print("|cff4477ffArms Rotation Helper|r " .. ns.VERSION
-            .. " loaded. Type /arh for commands.")
+            .. " loaded. Type /arh for settings.")
     elseif event == "PLAYER_ENTERING_WORLD" then
         ns.state.playerGUID = UnitGUID("player")
         ns.RefreshAbilityMetadata()
         ns.RefreshKnownSpells()
+        ns.RefreshTalentState()
         ns.ResetSwingTracking()
         ns.RefreshState()
     elseif event == "SPELLS_CHANGED" or event == "CHARACTER_POINTS_CHANGED" then
         ns.RefreshKnownSpells()
         ns.RefreshAbilityMetadata()
+        ns.RefreshTalentState()
+        if ns.Settings_Refresh then ns.Settings_Refresh() end
     elseif event == "PLAYER_EQUIPMENT_CHANGED" then
         ns.ResetSwingTracking()
     elseif event == "UNIT_ATTACK_SPEED" then
@@ -1033,6 +1107,17 @@ SlashCmdList["ARMSROTATIONHELPER"] = function(message)
         print(prefix .. "Optional stance advice: " .. OnOff(ToggleSetting("stanceAdvice")))
     elseif message == "sunder" then
         print(prefix .. "Maintain five Sunder Armor stacks: " .. OnOff(ToggleSetting("maintainSunder")))
+    elseif message == "demo" then
+        local rank = ns.state.improvedDemoShoutRank or 0
+        if rank <= 0 and not ns.db.maintainDemoShout then
+            print(prefix .. "Demoralizing Shout maintenance requires at least "
+                .. "one point in Improved Demoralizing Shout.")
+        else
+            print(prefix .. "Maintain Improved Demoralizing Shout: "
+                .. OnOff(ToggleSetting("maintainDemoShout"))
+                .. " (talent rank " .. rank .. "/"
+                .. (ns.state.improvedDemoShoutMaxRank or 5) .. ").")
+        end
     elseif message == "debug" then
         print(prefix .. "Debug panel: " .. OnOff(ToggleSetting("debugMode")))
     elseif message == "test" then
@@ -1129,6 +1214,7 @@ SlashCmdList["ARMSROTATIONHELPER"] = function(message)
         print("  /arh swing               - toggle the main-hand swing bar")
         print("  /arh queue               - toggle HS/Cleave queue advice")
         print("  /arh sunder              - toggle five-stack Sunder assignment")
+        print("  /arh demo                - toggle talented Demo Shout assignment")
         print("  /arh icon | glow          - toggle main icon/action-bar glow")
         print("  /arh cooldowns            - toggle cooldown and trinket row")
         print("  /arh scale 1.2            - resize the complete display")

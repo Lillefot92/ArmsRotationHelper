@@ -30,11 +30,11 @@ and level-70 raid conditions.
    location and 100% scale.
 7. Start and stop display preview from the panel.
 8. Select one simulator scenario, start it, advance one step, stop it, and run
-   the 23 priority checks from the panel.
+   the 26 priority checks from the panel.
 
 ## Simulator checks
 
-1. Run `/arh sim check`. It should report `23/23 simulator checks passed`.
+1. Run `/arh sim check`. It should report `26/26 simulator checks passed`.
 2. Run `/arh sim`. Confirm that a blue `SIMULATION` banner and the simulator
    diagnostic panel stay visible throughout the complete suite.
 3. Confirm each diagnostic step says `RESULT: PASS`.
@@ -50,6 +50,7 @@ Individual groups can be repeated with:
 - `/arh sim rage` - Mortal Strike/Whirlwind Rage protection.
 - `/arh sim execute` - no-weapon-swap Execute filler priority.
 - `/arh sim overpower` - target-specific dodge proc and stance advice.
+- `/arh sim demoralizing` - talented Demo Shout assignment and refresh rules.
 - `/arh sim aoe` - two-, three-, and four-target priorities.
 - `/arh sim cleave` - Sweeping Strikes pooling and Cleave queue thresholds.
 
@@ -82,6 +83,9 @@ learned:
 
 - Sunder Armor: never maintained by default; `/arh sunder` enables the assigned
   five-stack behavior on sufficiently durable targets.
+- Improved Demoralizing Shout: the panel option must remain disabled at 0/5,
+  enable at 1–5/5, and recommend Demo Shout only when the opt-in assignment is
+  active and the player's own debuff is missing or nearly expired.
 - Overpower: appears only for the target that dodged and disappears after use or
   after the dodge window expires.
 - Cleave: appears in the queue position during multi-target combat.

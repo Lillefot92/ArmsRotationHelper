@@ -218,6 +218,15 @@ CreateCheckbox(
     "locked"
 )
 
+local demoShoutCheckbox = CreateCheckbox(
+    "ArmsRotationHelperDemoShoutCheckbox",
+    "Maintain Improved Demo Shout",
+    "Available only with at least one point in Improved Demoralizing Shout. Refreshes your talented debuff as a filler without replacing Slam, Mortal Strike, Whirlwind, or Execute.",
+    24,
+    -340,
+    "maintainDemoShout"
+)
+
 CreateCheckbox(
     "ArmsRotationHelperMainIconCheckbox",
     "Main recommendation icon",
@@ -324,6 +333,7 @@ local scenarioDropdown = CreateDropdown(
         { value = "rage", label = "Rage protection" },
         { value = "execute", label = "Execute phase" },
         { value = "overpower", label = "Overpower stance" },
+        { value = "demoralizing", label = "Improved Demo Shout" },
         { value = "aoe", label = "AoE priority" },
         { value = "cleave", label = "Cleave and pooling" },
     },
@@ -394,7 +404,7 @@ local stopSimulatorButton = CreateButton(
 )
 
 local checkSimulatorButton = CreateButton(
-    "Run 23 priority checks",
+    "Run priority checks",
     180,
     326,
     -515,
@@ -457,6 +467,28 @@ function ns.Settings_Refresh()
 
     for setting, checkbox in pairs(controls) do
         checkbox:SetChecked(ns.db[setting] == true)
+    end
+
+    local demoRank = ns.state.improvedDemoShoutRank or 0
+    local demoMaxRank = ns.state.improvedDemoShoutMaxRank or 5
+    local demoAvailable = demoRank > 0
+    demoShoutCheckbox:SetEnabled(demoAvailable)
+
+    local demoLabel = _G[demoShoutCheckbox:GetName() .. "Text"]
+    demoLabel:SetText(string.format(
+        "Maintain Demo Shout (talent %d/%d)",
+        demoRank,
+        demoMaxRank
+    ))
+    if demoAvailable then
+        demoLabel:SetTextColor(1, 0.82, 0, 1)
+        demoShoutCheckbox.description =
+            "Refreshes your Improved Demoralizing Shout as a filler without "
+            .. "replacing Slam, Mortal Strike, Whirlwind, or Execute."
+    else
+        demoLabel:SetTextColor(0.50, 0.50, 0.50, 1)
+        demoShoutCheckbox.description =
+            "Requires at least one point in Improved Demoralizing Shout."
     end
 
     UpdateDropdown(modeDropdown)

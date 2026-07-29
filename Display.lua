@@ -622,6 +622,10 @@ local function BuildDebugLines(snapshot)
         math.max(0, s.rendExpiration - now),
         s.sunderStacks,
         math.max(0, s.sunderExpiration - now)))
+    table.insert(lines, string.format("My Demo Shout: %.1fs  Improved: %d/%d",
+        math.max(0, (s.demoShoutExpiration or 0) - now),
+        s.improvedDemoShoutRank or 0,
+        s.improvedDemoShoutMaxRank or 5))
 
     if snapshot.main then
         table.insert(lines, "Main: " .. (ns.GetAbilityName(snapshot.main.ability) or "?"))

@@ -15,7 +15,8 @@ Heroic Strike/Cleave next-swing queue advice.
 - Execute filler model with no weapon swapping.
 - Sweeping Strikes Rage pooling and multi-target recommendations.
 - Level-adaptive priority from early leveling through raids.
-- Optional stance advice and Sunder Armor assignment.
+- Optional stance advice, Sunder Armor assignment, and talented Improved
+  Demoralizing Shout maintenance.
 - Battle Shout or Commanding Shout assignment.
 - Blizzard, Bartender4, and Dominos action-button highlighting.
 - Cooldown and trinket row.

@@ -22,6 +22,7 @@ local ENDGAME_KNOWN = {
     "CHARGE",
     "REND",
     "THUNDER_CLAP",
+    "DEMORALIZING_SHOUT",
     "SUNDER_ARMOR",
     "BLOODRAGE",
     "OVERPOWER",
@@ -41,6 +42,7 @@ local SCENARIO_ORDER = {
     "rage",
     "execute",
     "overpower",
+    "demoralizing",
     "aoe",
     "cleave",
 }
@@ -51,6 +53,7 @@ local SCENARIO_LABELS = {
     rage = "Rage protection",
     execute = "Execute phase",
     overpower = "Overpower stance",
+    demoralizing = "Improved Demo Shout",
     aoe = "AoE priority",
     cleave = "Cleave and pooling",
     all = "Complete suite",
@@ -211,6 +214,50 @@ local scenarios = {
             },
         },
     },
+    demoralizing = {
+        {
+            label = "Talented assignment: apply Demo Shout",
+            state = {
+                rage = 30,
+                improvedDemoShoutRank = 5,
+                demoShoutExpiration = 0,
+            },
+            cooldowns = {
+                MORTAL_STRIKE = 5,
+                WHIRLWIND = 5,
+                DEMORALIZING_SHOUT = 0,
+            },
+            maintainDemoShout = true,
+            expectedMain = "DEMORALIZING_SHOUT",
+        },
+        {
+            label = "Active talented Demo Shout is not refreshed early",
+            state = {
+                rage = 30,
+                improvedDemoShoutRank = 5,
+            },
+            cooldowns = {
+                MORTAL_STRIKE = 5,
+                WHIRLWIND = 5,
+                DEMORALIZING_SHOUT = 0,
+            },
+            maintainDemoShout = true,
+        },
+        {
+            label = "Assignment is ignored without the Improved talent",
+            state = {
+                rage = 30,
+                improvedDemoShoutRank = 0,
+                demoShoutExpiration = 0,
+            },
+            cooldowns = {
+                MORTAL_STRIKE = 5,
+                WHIRLWIND = 5,
+                DEMORALIZING_SHOUT = 0,
+            },
+            maintainDemoShout = true,
+        },
+    },
     aoe = {
         {
             label = "Two targets: pooled Sweeping Strikes",
@@ -325,9 +372,7 @@ local function BuildContext(step)
 
     for key in pairs(known) do
         cooldowns[key] = 99
-        if ns.ABILITIES[key] and ns.ABILITIES[key].target then
-            inRange[key] = true
-        end
+        inRange[key] = true
         costs[key] = ns.CONFIG.COSTS[key] or 0
     end
     for key, value in pairs(step.cooldowns or {}) do cooldowns[key] = value end
@@ -351,6 +396,9 @@ local function BuildContext(step)
         rendExpiration = now + 12,
         sunderExpiration = now + 20,
         sunderStacks = 5,
+        demoShoutExpiration = now + 20,
+        improvedDemoShoutRank = 0,
+        improvedDemoShoutMaxRank = 5,
         battleShoutExpiration = now + 120,
         commandingExpiration = now + 120,
         sweepingExpiration = 0,
@@ -394,6 +442,7 @@ local function BuildContext(step)
             mode = step.mode or "auto",
             assignedShout = "battle",
             maintainSunder = false,
+            maintainDemoShout = step.maintainDemoShout == true,
             showQueue = true,
             stanceAdvice = true,
         },

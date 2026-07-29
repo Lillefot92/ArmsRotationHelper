@@ -16,9 +16,10 @@
 
 ### Rotation simulator
 
-- Added 23 deterministic scenario checks covering leveling, post-swing Slam,
+- Added 26 deterministic scenario checks covering leveling, post-swing Slam,
   Mortal Strike/Whirlwind Rage protection, Execute filler, target-specific
-  Overpower, two- to four-target AoE, Sweeping Strikes pooling, and Cleave.
+  Overpower, Improved Demoralizing Shout, two- to four-target AoE, Sweeping
+  Strikes pooling, and Cleave.
 - Refactored the live priority evaluator to accept an isolated simulation
   context without replacing or mutating the player's combat state.
 - Added `/arh sim`, named scenario groups, manual step control, and a complete
@@ -26,6 +27,15 @@
 - Added a blue simulation banner and automatic pass/fail diagnostics.
 - Suppressed action-bar glow and the live cooldown row during simulation to
   prevent test recommendations from being mistaken for live combat prompts.
+
+### Improved Demoralizing Shout
+
+- Added opt-in maintenance for the player's talented Demoralizing Shout.
+- Detects Improved Demoralizing Shout ranks 1–5 and disables the setting when
+  the talent has no points.
+- Keeps the debuff as a filler assignment after Slam, Mortal Strike,
+  Whirlwind, Execute, and Overpower.
+- Added live duration/talent diagnostics and a `/arh demo` shortcut.
 
 ## 1.6.0-beta.2
 
