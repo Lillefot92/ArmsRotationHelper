@@ -78,9 +78,9 @@ available as a slash command for quick access.
 
 ## Settings panel
 
-The panel is available directly through `/arh`. On clients with the legacy
-Interface Options API, it is also linked from
-`Escape > Interface > AddOns > Arms Rotation Helper`.
+The panel is available directly through `/arh` and is also linked from
+`Escape > Options > AddOns > Arms Rotation Helper`. Older clients use the
+legacy Interface Options fallback.
 
 Changes apply immediately. The panel includes target mode, assigned shout,
 stance and Sunder options, all display toggles, scale and locking controls,

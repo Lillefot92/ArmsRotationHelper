@@ -531,9 +531,14 @@ if UISpecialFrames then
     table.insert(UISpecialFrames, panel:GetName())
 end
 
--- TBC Classic uses the legacy Interface Options API. Register a lightweight
--- category entry when it is present; /arh remains available on every client.
-if InterfaceOptions_AddCategory then
+-- Anniversary clients use the modern Settings API, while older TBC clients
+-- expose InterfaceOptions_AddCategory. Register the same lightweight launcher
+-- with either API; /arh remains available on every client.
+local hasModernSettings = Settings
+    and Settings.RegisterCanvasLayoutCategory
+    and Settings.RegisterAddOnCategory
+
+if hasModernSettings or InterfaceOptions_AddCategory then
     local category = CreateFrame(
         "Frame",
         "ArmsRotationHelperInterfaceOptionsCategory"
@@ -570,9 +575,19 @@ if InterfaceOptions_AddCategory then
     openButton:SetPoint("TOPLEFT", categoryDescription, "BOTTOMLEFT", 0, -18)
     openButton:SetText("Open settings")
     openButton:SetScript("OnClick", function()
+        if SettingsPanel then SettingsPanel:Hide() end
         if InterfaceOptionsFrame then InterfaceOptionsFrame:Hide() end
         ns.Settings_Open()
     end)
 
-    InterfaceOptions_AddCategory(category)
+    if hasModernSettings then
+        local settingsCategory = Settings.RegisterCanvasLayoutCategory(
+            category,
+            category.name
+        )
+        Settings.RegisterAddOnCategory(settingsCategory)
+        ns.settingsCategory = settingsCategory
+    else
+        InterfaceOptions_AddCategory(category)
+    end
 end

@@ -9,8 +9,8 @@
   controls.
 - Made `/arh`, `/arh config`, and `/arh options` open the panel while keeping
   every existing slash command available.
-- Added an optional entry under the TBC Interface/AddOns menu when the legacy
-  Interface Options API is available.
+- Added an entry under the Anniversary `Options > AddOns` menu through the
+  modern Settings API, with a legacy Interface Options fallback.
 - Added immediate control synchronization so panel and slash-command changes
   remain consistent.
 

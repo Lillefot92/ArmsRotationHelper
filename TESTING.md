@@ -18,8 +18,8 @@ and level-70 raid conditions.
 
 1. Run `/arh` and confirm the settings panel opens. Run `/arh` again to close
    it, then reopen it with `/arh config`.
-2. If `Escape > Interface > AddOns` is available, open
-   `Arms Rotation Helper` there and confirm its button opens the full panel.
+2. Open `Escape > Options > AddOns > Arms Rotation Helper` and confirm its
+   button opens the full panel.
 3. Change target mode and assigned shout with both dropdowns. Close and reopen
    the panel; both selections should remain.
 4. Toggle every display checkbox and confirm the recommendation display updates
