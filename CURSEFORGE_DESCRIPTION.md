@@ -19,11 +19,11 @@ Heroic Strike/Cleave next-swing queue advice.
 - Battle Shout or Commanding Shout assignment.
 - Blizzard, Bartender4, and Dominos action-button highlighting.
 - Cooldown and trinket row.
-- Display preview and live debug tools.
+- In-game settings panel.
+- Deterministic rotation simulator, display preview, and live debug tools.
 
 The addon is an advisor only. It does not cast abilities, change equipment, or
 automate player input.
 
 This is a beta build. Feedback from level-70 heroic dungeons and raids is
 especially valuable; please include a screenshot of `/arh debug` with reports.
-

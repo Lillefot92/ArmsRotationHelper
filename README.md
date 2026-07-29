@@ -18,6 +18,8 @@ rotation. It only recommends actions; it never casts spells or automates input.
 - Automatic single-target/AoE selection, with manual overrides.
 - A deterministic rotation simulator for validating priorities without a
   level-70 character or live combat.
+- An in-game settings panel for rotation, display, positioning, preview, and
+  simulator controls.
 
 ## Rotation model
 
@@ -50,8 +52,11 @@ and avoid spending Rage on Heroic Strike unless its queue icon appears.
 
 ## Commands
 
-Use `/arh` or `/armshelper`.
+Use `/arh` or `/armshelper` to open the settings panel. Every setting remains
+available as a slash command for quick access.
 
+- `/arh` or `/arh config` - open or close the settings panel.
+- `/arh help` - print the complete command list.
 - `/arh unlock` and `/arh lock` - move or lock the complete display.
 - `/arh scale 1.2` - set the display scale from 0.3 to 3.
 - `/arh mode auto|single|aoe` - choose target-count behavior.
@@ -71,6 +76,17 @@ Use `/arh` or `/armshelper`.
 - `/arh debug spells` - print localized spellbook entries.
 - `/arh reset` - reset display position and scale.
 
+## Settings panel
+
+The panel is available directly through `/arh`. On clients with the legacy
+Interface Options API, it is also linked from
+`Escape > Interface > AddOns > Arms Rotation Helper`.
+
+Changes apply immediately. The panel includes target mode, assigned shout,
+stance and Sunder options, all display toggles, scale and locking controls,
+display preview, named simulator scenarios, manual simulator steps, and the
+complete 23-check rotation test.
+
 ## Installation
 
 1. Exit World of Warcraft.
@@ -79,7 +95,7 @@ Use `/arh` or `/armshelper`.
    `World of Warcraft/_anniversary_/Interface/AddOns`
 4. Confirm that the final path contains
    `ArmsRotationHelper/ArmsRotationHelper.toc`.
-5. Start the game, enable the addon, then enter `/arh test`.
+5. Start the game, enable the addon, then enter `/arh`.
 6. Enter `/arh sim check`; the development build should report every scenario
    as passed.
 

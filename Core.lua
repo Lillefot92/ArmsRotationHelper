@@ -13,7 +13,7 @@ local BOOKTYPE_SPELL_VALUE = BOOKTYPE_SPELL or "spell"
 local RAGE_POWER_TYPE = (Enum and Enum.PowerType and Enum.PowerType.Rage) or 1
 
 ns.RAGE_POWER_TYPE = RAGE_POWER_TYPE
-ns.VERSION = "1.6.0-beta.3-dev"
+ns.VERSION = "1.6.0-beta.3-dev.2"
 
 -- Base-rank spell IDs are used only as stable, locale-independent
 -- identifiers. When an ability is trained, the highest known rank
@@ -946,9 +946,14 @@ local function Trim(text)
     return (text:match("^%s*(.-)%s*$"))
 end
 
+local function RefreshSettingsPanel()
+    if ns.Settings_Refresh then ns.Settings_Refresh() end
+end
+
 local function ToggleSetting(key)
     ns.db[key] = not ns.db[key]
     if ns.Display_ApplySettings then ns.Display_ApplySettings() end
+    RefreshSettingsPanel()
     return ns.db[key]
 end
 
@@ -988,6 +993,7 @@ local function StartSimulator(prefix, name)
         .. ns.Simulator_GetScenarioLabel(name) .. ".")
     print(prefix .. "Each step lasts 3.5 seconds. Use /arh sim next or /arh sim stop.")
     PrintSimulatorCheck(prefix)
+    RefreshSettingsPanel()
 end
 
 SLASH_ARMSROTATIONHELPER1 = "/arh"
@@ -997,13 +1003,21 @@ SlashCmdList["ARMSROTATIONHELPER"] = function(message)
     message = Trim(message or ""):lower()
     local prefix = "|cff4477ffArms Rotation Helper|r: "
 
-    if message == "lock" then
+    if message == "" or message == "config" or message == "options" then
+        if ns.Settings_Toggle then
+            ns.Settings_Toggle()
+        else
+            print(prefix .. "Settings panel is not available.")
+        end
+    elseif message == "lock" then
         ns.db.locked = true
         if ns.Display_ApplySettings then ns.Display_ApplySettings() end
+        RefreshSettingsPanel()
         print(prefix .. "Locked.")
     elseif message == "unlock" then
         ns.db.locked = false
         if ns.Display_ApplySettings then ns.Display_ApplySettings() end
+        RefreshSettingsPanel()
         print(prefix .. "Unlocked. Drag the main display, then use /arh lock.")
     elseif message == "icon" then
         print(prefix .. "Main icon: " .. OnOff(ToggleSetting("showIcon")))
@@ -1027,17 +1041,20 @@ SlashCmdList["ARMSROTATIONHELPER"] = function(message)
         end
         ns.db.testMode = not ns.db.testMode
         if ns.Display_SetTestMode then ns.Display_SetTestMode(ns.db.testMode) end
+        RefreshSettingsPanel()
         print(prefix .. "Display test mode: " .. OnOff(ns.db.testMode))
     elseif message == "sim" or message == "sim all" then
         StartSimulator(prefix, "all")
     elseif message == "sim stop" then
         if ns.Simulator_Stop and ns.Simulator_Stop() then
+            RefreshSettingsPanel()
             print(prefix .. "Simulator stopped. Live recommendations restored.")
         else
             print(prefix .. "Simulator is already stopped.")
         end
     elseif message == "sim next" then
         if ns.Simulator_Next and ns.Simulator_Next() then
+            RefreshSettingsPanel()
             print(prefix .. "Advanced to the next simulator step.")
         else
             print(prefix .. "Start it first with /arh sim.")
@@ -1058,11 +1075,13 @@ SlashCmdList["ARMSROTATIONHELPER"] = function(message)
     elseif message == "mode" then
         local order = { auto = "single", single = "aoe", aoe = "auto" }
         ns.db.mode = order[ns.db.mode] or "auto"
+        RefreshSettingsPanel()
         print(prefix .. "Target mode: " .. ns.db.mode)
     elseif message:match("^mode%s+") then
         local value = message:match("^mode%s+(%a+)")
         if value == "auto" or value == "single" or value == "aoe" then
             ns.db.mode = value
+            RefreshSettingsPanel()
             print(prefix .. "Target mode set to " .. value .. ".")
         else
             print(prefix .. "Use /arh mode auto, /arh mode single, or /arh mode aoe.")
@@ -1071,6 +1090,7 @@ SlashCmdList["ARMSROTATIONHELPER"] = function(message)
         local value = message:match("^shout%s+(%a+)")
         if value == "battle" or value == "commanding" then
             ns.db.assignedShout = value
+            RefreshSettingsPanel()
             print(prefix .. "Assigned shout set to " .. value .. ".")
         else
             print(prefix .. "Use /arh shout battle or /arh shout commanding.")
@@ -1080,6 +1100,7 @@ SlashCmdList["ARMSROTATIONHELPER"] = function(message)
         if value and value >= 0.3 and value <= 3 then
             ns.db.scale = value
             if ns.Display_ApplySettings then ns.Display_ApplySettings() end
+            RefreshSettingsPanel()
             print(prefix .. "Scale set to " .. value .. ".")
         else
             print(prefix .. "Give a number from 0.3 to 3, for example /arh scale 1.2.")
@@ -1087,6 +1108,7 @@ SlashCmdList["ARMSROTATIONHELPER"] = function(message)
     elseif message == "reset" then
         ns.db.point, ns.db.x, ns.db.y, ns.db.scale = "CENTER", 0, 250, 1.0
         if ns.Display_ApplySettings then ns.Display_ApplySettings() end
+        RefreshSettingsPanel()
         print(prefix .. "Position and scale reset.")
     elseif message == "debug spells" then
         local list = {}
@@ -1098,6 +1120,8 @@ SlashCmdList["ARMSROTATIONHELPER"] = function(message)
         if #list > 0 then print("  " .. table.concat(list, ", ")) end
     else
         print(prefix .. "commands:")
+        print("  /arh                      - open the settings panel")
+        print("  /arh help                 - show this command list")
         print("  /arh lock | unlock       - lock or move the display")
         print("  /arh mode auto|single|aoe - target-count behavior")
         print("  /arh shout battle|commanding - select assigned shout")

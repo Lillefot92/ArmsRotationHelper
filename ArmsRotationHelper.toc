@@ -2,10 +2,11 @@
 ## Title: Arms Rotation Helper
 ## Notes: Swing-aware PvE rotation advisor for two-handed Arms Warriors in TBC Anniversary.
 ## Author: ArmsRotationHelper Contributors
-## Version: 1.6.0-beta.3-dev
+## Version: 1.6.0-beta.3-dev.2
 ## SavedVariables: ArmsRotationHelperDB
 
 Core.lua
 Rotation.lua
 Simulator.lua
 Display.lua
+Settings.lua

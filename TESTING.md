@@ -14,6 +14,24 @@ and level-70 raid conditions.
    remain visible for the complete preview.
 5. Turn test mode off with `/arh test`.
 
+## Settings panel checks
+
+1. Run `/arh` and confirm the settings panel opens. Run `/arh` again to close
+   it, then reopen it with `/arh config`.
+2. If `Escape > Interface > AddOns` is available, open
+   `Arms Rotation Helper` there and confirm its button opens the full panel.
+3. Change target mode and assigned shout with both dropdowns. Close and reopen
+   the panel; both selections should remain.
+4. Toggle every display checkbox and confirm the recommendation display updates
+   immediately.
+5. Unlock the recommendation display, drag it, lock it again, and adjust the
+   scale slider.
+6. Use `Reset position and scale` and confirm the display returns to its default
+   location and 100% scale.
+7. Start and stop display preview from the panel.
+8. Select one simulator scenario, start it, advance one step, stop it, and run
+   the 23 priority checks from the panel.
+
 ## Simulator checks
 
 1. Run `/arh sim check`. It should report `23/23 simulator checks passed`.

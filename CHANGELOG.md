@@ -2,6 +2,18 @@
 
 ## 1.6.0-beta.3 (development)
 
+### Settings panel
+
+- Added an in-game panel for rotation mode, assigned shout, stance advice,
+  Sunder assignment, display components, locking, scale, preview, and simulator
+  controls.
+- Made `/arh`, `/arh config`, and `/arh options` open the panel while keeping
+  every existing slash command available.
+- Added an optional entry under the TBC Interface/AddOns menu when the legacy
+  Interface Options API is available.
+- Added immediate control synchronization so panel and slash-command changes
+  remain consistent.
+
 ### Rotation simulator
 
 - Added 23 deterministic scenario checks covering leveling, post-swing Slam,
