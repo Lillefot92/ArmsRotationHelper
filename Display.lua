@@ -2,7 +2,7 @@
 -- Arms Rotation Helper - Display.lua
 -- Main recommendation, optional stance prompt, swing timer,
 -- next-swing queue advice, cooldown availability, action-bar
--- glow, test preview, and debug diagnostics.
+-- glow, test preview, deterministic simulation, and debug diagnostics.
 -- ============================================================
 
 local ADDON_NAME, ns = ...
@@ -68,7 +68,7 @@ local testBanner = CreateFrame(
     root,
     "BackdropTemplate"
 )
-testBanner:SetSize(116, 22)
+testBanner:SetSize(190, 22)
 testBanner:SetPoint("BOTTOM", mainFrame, "TOP", 0, 6)
 ApplyBackdrop(testBanner, 0.92)
 testBanner:SetBackdropBorderColor(1.00, 0.20, 0.16, 1)
@@ -311,8 +311,8 @@ local function LayoutCooldownRow(activeFrames)
     end
 end
 
-local function UpdateCooldownRow()
-    if not ns.db.showCooldowns then
+local function UpdateCooldownRow(snapshot)
+    if not ns.db.showCooldowns or (snapshot and snapshot.simulation) then
         cooldownRow:Hide()
         return
     end
@@ -474,7 +474,8 @@ local function HideGlow()
 end
 
 local function UpdateGlow(snapshot)
-    if not ns.db.showGlow or not snapshot or not snapshot.main then
+    if not ns.db.showGlow or not snapshot or not snapshot.main
+        or snapshot.simulation then
         HideGlow()
         return
     end
@@ -531,6 +532,64 @@ local function BuildDebugLines(snapshot)
     if ns.db.testMode then
         table.insert(lines, "*** TEST MODE - SIMULATED RECOMMENDATIONS ***")
     end
+
+    if snapshot.simulation then
+        local sim = snapshot.simulation
+        local simulatedState = sim.state
+        local actualMain = snapshot.main and snapshot.main.ability
+        local actualQueue = snapshot.queue and snapshot.queue.ability
+        local actualStance = snapshot.main and snapshot.main.stance
+
+        table.insert(lines, "*** ROTATION SIMULATOR - NOT LIVE COMBAT ***")
+        table.insert(lines, string.format(
+            "Scenario: %s  Step: %d/%d",
+            sim.scenarioLabel,
+            sim.stepIndex,
+            sim.stepTotal
+        ))
+        if sim.activeName == "all" then
+            table.insert(lines, string.format(
+                "Complete suite: %d/%d",
+                sim.suiteIndex,
+                sim.suiteTotal
+            ))
+        end
+        table.insert(lines, sim.stepLabel)
+        table.insert(lines, string.format(
+            "Rage: %d  Targets: %d  Target HP: %.0f%%",
+            simulatedState.rage,
+            simulatedState.enemyCount,
+            simulatedState.targetHPPercent
+        ))
+        table.insert(lines, string.format(
+            "Swing: %.1fs  Slam window: %s  GCD: %.1fs",
+            sim.swingRemaining,
+            sim.slamWindowOpen and "OPEN" or "closed",
+            sim.gcdRemaining
+        ))
+        table.insert(lines, "Main actual/expected: "
+            .. (actualMain and (ns.GetAbilityName(actualMain) or actualMain) or "WAIT")
+            .. " / "
+            .. (sim.expectedMain
+                and (ns.GetAbilityName(sim.expectedMain) or sim.expectedMain)
+                or "WAIT"))
+        table.insert(lines, "Queue actual/expected: "
+            .. (actualQueue and (ns.GetAbilityName(actualQueue) or actualQueue) or "NONE")
+            .. " / "
+            .. (sim.expectedQueue
+                and (ns.GetAbilityName(sim.expectedQueue) or sim.expectedQueue)
+                or "NONE"))
+        table.insert(lines, "Stance actual/expected: "
+            .. (actualStance and ns.GetStanceLabel(actualStance) or "NONE")
+            .. " / "
+            .. (sim.expectedStance and ns.GetStanceLabel(sim.expectedStance) or "NONE"))
+        table.insert(lines, sim.passed
+            and "|cff40ff40RESULT: PASS|r"
+            or "|cffff4040RESULT: FAIL - use /arh sim check|r")
+        table.insert(lines, "Use /arh sim next or /arh sim stop")
+        return lines
+    end
+
     table.insert(lines, string.format("Rage: %d/%d  Combat: %s  Moving: %s",
         s.rage, s.maxRage, s.inCombat and "yes" or "no", s.moving and "yes" or "no"))
     table.insert(lines, "Stance: " .. ns.GetStanceLabel(s.stance))
@@ -598,7 +657,7 @@ local function BuildDebugLines(snapshot)
 end
 
 local function UpdateDebugPanel(snapshot)
-    if not ns.db.debugMode then
+    if not ns.db.debugMode and not snapshot.simulation then
         debugFrame:Hide()
         return
     end
@@ -661,8 +720,20 @@ local function UpdateMainIcon(snapshot)
     captionFrame:Show()
 end
 
-local function UpdateTestBanner()
-    if ns.db.testMode then
+local function UpdateTestBanner(snapshot)
+    local sim = snapshot and snapshot.simulation
+    if sim then
+        testBanner:SetBackdropBorderColor(0.20, 0.75, 1.00, 1)
+        testBannerText:SetText(string.format(
+            "|cff55ccffSIMULATION: %s %d/%d|r",
+            sim.scenarioName:upper(),
+            sim.stepIndex,
+            sim.stepTotal
+        ))
+        testBanner:Show()
+    elseif ns.db.testMode then
+        testBanner:SetBackdropBorderColor(1.00, 0.20, 0.16, 1)
+        testBannerText:SetText("|cffff3b30TEST MODE|r")
         testBanner:Show()
     else
         testBanner:Hide()
@@ -700,18 +771,27 @@ local function UpdateQueueIcon(snapshot)
 end
 
 local function UpdateSwingBar(snapshot)
-    local testProgress = snapshot and snapshot.testProgress
+    local progressOverride = snapshot
+        and (snapshot.swingProgressOverride or snapshot.testProgress)
     local hasLiveSwing = ns.state.inCombat
         and ns.state.mainhandSpeed > 0
         and ns.state.nextMainhandSwing > 0
 
-    if not ns.db.showSwingBar or (not hasLiveSwing and testProgress == nil) then
+    if not ns.db.showSwingBar
+        or (not hasLiveSwing and progressOverride == nil) then
         swingBar:Hide()
         return
     end
 
-    local progress = testProgress or ns.GetSwingProgress()
-    local remaining = testProgress and ((1 - progress) * 3.6) or ns.GetSwingRemaining()
+    local progress = progressOverride or ns.GetSwingProgress()
+    local remaining
+    if snapshot and snapshot.simulation then
+        remaining = snapshot.simulation.swingRemaining
+    elseif progressOverride then
+        remaining = (1 - progress) * 3.6
+    else
+        remaining = ns.GetSwingRemaining()
+    end
     swingFill:SetWidth(math.max(1, 100 * progress))
 
     if snapshot and snapshot.main and snapshot.main.ability == "SLAM" then
@@ -730,6 +810,11 @@ local function SafeUpdate(context, func, ...)
 end
 
 local function BuildSnapshot()
+    if ns.Simulator_IsActive and ns.Simulator_IsActive() then
+        local ok, result = pcall(ns.Simulator_GetSnapshot)
+        if ok and result then return result end
+        if not ok then ns.ReportOnce("Rotation simulator", result) end
+    end
     if ns.db.testMode then return BuildTestSnapshot() end
     local ok, result = pcall(ns.Rotation_GetSnapshot)
     if not ok then
@@ -774,7 +859,7 @@ ticker:SetScript("OnUpdate", function(_, elapsed)
 
     local snapshot = BuildSnapshot()
     SafeUpdate("Main icon", UpdateMainIcon, snapshot)
-    SafeUpdate("Test mode banner", UpdateTestBanner)
+    SafeUpdate("Test/simulation banner", UpdateTestBanner, snapshot)
     SafeUpdate("Stance icon", UpdateStanceIcon, snapshot)
     SafeUpdate("Queue icon", UpdateQueueIcon, snapshot)
     SafeUpdate("Swing bar", UpdateSwingBar, snapshot)
@@ -783,6 +868,6 @@ ticker:SetScript("OnUpdate", function(_, elapsed)
 
     if elapsedCooldown >= ns.CONFIG.COOLDOWN_ROW_TICK then
         elapsedCooldown = 0
-        SafeUpdate("Cooldown row", UpdateCooldownRow)
+        SafeUpdate("Cooldown row", UpdateCooldownRow, snapshot)
     end
 end)

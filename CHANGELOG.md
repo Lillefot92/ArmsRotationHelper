@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.6.0-beta.3 (development)
+
+### Rotation simulator
+
+- Added 23 deterministic scenario checks covering leveling, post-swing Slam,
+  Mortal Strike/Whirlwind Rage protection, Execute filler, target-specific
+  Overpower, two- to four-target AoE, Sweeping Strikes pooling, and Cleave.
+- Refactored the live priority evaluator to accept an isolated simulation
+  context without replacing or mutating the player's combat state.
+- Added `/arh sim`, named scenario groups, manual step control, and a complete
+  self-check command.
+- Added a blue simulation banner and automatic pass/fail diagnostics.
+- Suppressed action-bar glow and the live cooldown row during simulation to
+  prevent test recommendations from being mistaken for live combat prompts.
+
 ## 1.6.0-beta.2
 
 ### Live-test polish

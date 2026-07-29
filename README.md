@@ -16,6 +16,8 @@ rotation. It only recommends actions; it never casts spells or automates input.
 - Action-bar highlighting for Blizzard bars, Bartender4, and Dominos.
 - A small cooldown row for Death Wish, Recklessness, and equipped trinkets.
 - Automatic single-target/AoE selection, with manual overrides.
+- A deterministic rotation simulator for validating priorities without a
+  level-70 character or live combat.
 
 ## Rotation model
 
@@ -60,6 +62,11 @@ Use `/arh` or `/armshelper`.
 - `/arh sunder` - toggle the five-stack Sunder Armor assignment.
 - `/arh icon`, `/arh glow`, `/arh cooldowns` - toggle display parts.
 - `/arh test` - preview the high-level display.
+- `/arh sim` - run the complete rotation simulator.
+- `/arh sim leveling|slam|rage|execute|overpower|aoe|cleave` - run one
+  scenario group.
+- `/arh sim next|stop|check|list` - control the simulator or run all automated
+  priority checks.
 - `/arh debug` - show live state and decision information.
 - `/arh debug spells` - print localized spellbook entries.
 - `/arh reset` - reset display position and scale.
@@ -73,8 +80,24 @@ Use `/arh` or `/armshelper`.
 4. Confirm that the final path contains
    `ArmsRotationHelper/ArmsRotationHelper.toc`.
 5. Start the game, enable the addon, then enter `/arh test`.
+6. Enter `/arh sim check`; the development build should report every scenario
+   as passed.
 
 See `TESTING.md` for the beta checklist and useful bug-report details.
+
+## Rotation simulator
+
+The simulator uses the same priority evaluator as live combat, but supplies
+isolated test data for Rage, target health, enemy count, cooldowns, stance, and
+the post-swing Slam window. It never replaces or writes to the player's combat
+state.
+
+`/arh sim` cycles through the full suite in 3.5-second steps. A blue
+`SIMULATION` banner and automatic diagnostic panel remain visible for the
+complete run. Action-bar glow and the live cooldown row are suppressed during
+simulation so test recommendations cannot be mistaken for live prompts.
+
+Use `/arh sim stop` to return immediately to live recommendations.
 
 ## Design references
 
@@ -94,4 +117,3 @@ rotation model:
   the project should be called release-ready.
 - A public license and final CurseForge author/project metadata still need to be
   selected before publication.
-

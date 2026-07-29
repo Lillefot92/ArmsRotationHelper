@@ -12,11 +12,76 @@
 
 local ADDON_NAME, ns = ...
 
+-- Rotation evaluation normally reads the live game APIs. The simulator
+-- supplies an isolated context so the exact same priority functions can be
+-- exercised without replacing or mutating ns.state.
+local evaluationContext
+
+local function State()
+    return (evaluationContext and evaluationContext.state) or ns.state
+end
+
+local function Settings()
+    return (evaluationContext and evaluationContext.db) or ns.db
+end
+
+local function Now()
+    return (evaluationContext and evaluationContext.now) or GetTime()
+end
+
+local function AbilityCost(key)
+    if evaluationContext and evaluationContext.costs
+        and evaluationContext.costs[key] ~= nil then
+        return evaluationContext.costs[key]
+    end
+    return ns.GetAbilityCost(key)
+end
+
+local function CooldownRemaining(key)
+    if evaluationContext and evaluationContext.cooldowns
+        and evaluationContext.cooldowns[key] ~= nil then
+        return evaluationContext.cooldowns[key]
+    end
+    return ns.GetAbilityCooldownRemaining(key, true)
+end
+
+local function GCDRemaining()
+    if evaluationContext and evaluationContext.gcdRemaining ~= nil then
+        return evaluationContext.gcdRemaining
+    end
+    return ns.GetGCDRemaining()
+end
+
+local function SwingRemaining()
+    if evaluationContext and evaluationContext.swingRemaining ~= nil then
+        return evaluationContext.swingRemaining
+    end
+    return ns.GetSwingRemaining()
+end
+
+local function ImprovedSlamReady()
+    if evaluationContext and evaluationContext.improvedSlam ~= nil then
+        return evaluationContext.improvedSlam
+    end
+    return ns.IsImprovedSlamReady()
+end
+
+local function SlamWindowOpen()
+    if evaluationContext and evaluationContext.slamWindowOpen ~= nil then
+        return evaluationContext.slamWindowOpen
+    end
+    return ns.IsSlamWindowOpen()
+end
+
+local function PreferredStance(key)
+    return ns.GetPreferredStanceForAbility(key, State().stance)
+end
+
 local function Decision(key, reason)
     if not key then return nil end
     local preferredStance
-    if ns.db.stanceAdvice then
-        preferredStance = ns.GetPreferredStanceForAbility(key)
+    if Settings().stanceAdvice then
+        preferredStance = PreferredStance(key)
     end
     return {
         ability = key,
@@ -26,35 +91,43 @@ local function Decision(key, reason)
 end
 
 local function Knows(key)
+    if evaluationContext and evaluationContext.known then
+        return evaluationContext.known[key] == true
+    end
     return ns.PlayerKnowsAbility(key)
 end
 
 local function HasRage(key, extra)
-    return ns.state.rage >= ns.GetAbilityCost(key) + (extra or 0)
+    return State().rage >= AbilityCost(key) + (extra or 0)
 end
 
 local function Ready(key, tolerance)
-    return Knows(key) and ns.IsAbilityReady(key, tolerance)
+    return Knows(key)
+        and CooldownRemaining(key) <= (tolerance or 0.15)
 end
 
 local function TargetAbilityAvailable(key, tolerance)
-    if not ns.state.targetAttackable then return false end
+    if not State().targetAttackable then return false end
     if not Ready(key, tolerance) then return false end
     if not HasRage(key) then return false end
+    if evaluationContext and evaluationContext.inRange
+        and evaluationContext.inRange[key] ~= nil then
+        return evaluationContext.inRange[key]
+    end
     return ns.IsAbilityInRange(key, "target")
 end
 
 local function GetAssignedShout()
-    if ns.db.assignedShout == "commanding" and Knows("COMMANDING_SHOUT") then
-        return "COMMANDING_SHOUT", ns.state.commandingExpiration
+    if Settings().assignedShout == "commanding" and Knows("COMMANDING_SHOUT") then
+        return "COMMANDING_SHOUT", State().commandingExpiration
     end
-    return "BATTLE_SHOUT", ns.state.battleShoutExpiration
+    return "BATTLE_SHOUT", State().battleShoutExpiration
 end
 
 local function ShouldRefreshShout()
     local key, expiration = GetAssignedShout()
     if not Knows(key) or not HasRage(key) then return nil end
-    local remaining = (expiration or 0) - GetTime()
+    local remaining = (expiration or 0) - Now()
     if expiration == 0 or remaining <= ns.CONFIG.SHOUT_REFRESH_AT then
         return key
     end
@@ -62,10 +135,10 @@ local function ShouldRefreshShout()
 end
 
 local function GetTargetMode()
-    local count = ns.state.enemyCount or 0
-    if ns.db.mode == "single" then
+    local count = State().enemyCount or 0
+    if Settings().mode == "single" then
         return false, math.max(1, count)
-    elseif ns.db.mode == "aoe" then
+    elseif Settings().mode == "aoe" then
         return true, math.max(ns.CONFIG.AOE_ENEMY_THRESHOLD, count)
     end
     return count >= ns.CONFIG.AOE_ENEMY_THRESHOLD, count
@@ -73,14 +146,22 @@ end
 
 local function CanUseVictoryRush()
     if not TargetAbilityAvailable("VICTORY_RUSH") then return false end
-    local usable, insufficientPower = ns.IsAbilityUsable("VICTORY_RUSH")
+    local usable, insufficientPower
+    if evaluationContext and evaluationContext.usable
+        and evaluationContext.usable.VICTORY_RUSH ~= nil then
+        usable = evaluationContext.usable.VICTORY_RUSH
+        insufficientPower = evaluationContext.insufficientPower
+            and evaluationContext.insufficientPower.VICTORY_RUSH == true
+    else
+        usable, insufficientPower = ns.IsAbilityUsable("VICTORY_RUSH")
+    end
     return usable and not insufficientPower
 end
 
 local function CanUseOverpower()
-    local s = ns.state
+    local s = State()
     if s.targetHPPercent <= ns.CONFIG.EXECUTE_HP_PCT then return false end
-    if s.overpowerWindowEnd <= GetTime() then return false end
+    if s.overpowerWindowEnd <= Now() then return false end
     if not s.overpowerTargetGUID or s.overpowerTargetGUID ~= s.targetGUID then return false end
     return TargetAbilityAvailable("OVERPOWER")
 end
@@ -88,44 +169,44 @@ end
 -- Bloodrage is intentionally kept simple: it is a low-Rage recovery
 -- suggestion, never allowed to replace a ready core attack.
 local function CanUseBloodrage()
-    return ns.state.inCombat
-        and ns.state.rage < 10
+    return State().inCombat
+        and State().rage < 10
         and Ready("BLOODRAGE")
 end
 
 local function ShouldMaintainSunder()
     if not TargetAbilityAvailable("SUNDER_ARMOR") then return false end
-    if ns.state.targetTTD < 8 then return false end
+    if State().targetTTD < 8 then return false end
 
-    if ns.db.maintainSunder then
-        local remaining = ns.state.sunderExpiration - GetTime()
-        return ns.state.sunderStacks < 5 or remaining <= 3
+    if Settings().maintainSunder then
+        local remaining = State().sunderExpiration - Now()
+        return State().sunderStacks < 5 or remaining <= 3
     end
 
     -- While leveling, Sunder is a useful long-target filler before
     -- the complete Improved Slam raid rotation is available.
-    if not ns.IsImprovedSlamReady()
-        and ns.state.targetHPPercent >= 60
-        and ns.state.targetTTD >= ns.CONFIG.SUNDER_MIN_TTD then
-        return ns.state.sunderStacks < ns.CONFIG.SUNDER_LEVELING_MAX_STACK
+    if not ImprovedSlamReady()
+        and State().targetHPPercent >= 60
+        and State().targetTTD >= ns.CONFIG.SUNDER_MIN_TTD then
+        return State().sunderStacks < ns.CONFIG.SUNDER_LEVELING_MAX_STACK
     end
     return false
 end
 
 local function ShouldApplyLevelingRend()
-    if ns.IsImprovedSlamReady() then return false end
+    if ImprovedSlamReady() then return false end
     if not TargetAbilityAvailable("REND") then return false end
-    if ns.state.rendExpiration > GetTime() then return false end
-    if ns.state.targetHPPercent <= 35 then return false end
-    return ns.state.targetTTD >= ns.CONFIG.REND_MIN_TTD
+    if State().rendExpiration > Now() then return false end
+    if State().targetHPPercent <= 35 then return false end
+    return State().targetTTD >= ns.CONFIG.REND_MIN_TTD
 end
 
 local function MortalStrikeShouldBeReserved()
     if not Knows("MORTAL_STRIKE") then return false end
-    local remaining = ns.GetAbilityCooldownRemaining("MORTAL_STRIKE", true)
+    local remaining = CooldownRemaining("MORTAL_STRIKE")
     if remaining > 2.0 then return false end
-    return ns.state.rage < ns.GetAbilityCost("MORTAL_STRIKE")
-        + ns.GetAbilityCost("WHIRLWIND")
+    return State().rage < AbilityCost("MORTAL_STRIKE")
+        + AbilityCost("WHIRLWIND")
 end
 
 local function CanUseSingleTargetWhirlwind()
@@ -134,62 +215,62 @@ local function CanUseSingleTargetWhirlwind()
 end
 
 local function CoreAttackWouldBeStarvedBySlam(aoeActive)
-    local slamCost = ns.GetAbilityCost("SLAM")
-    local rage = ns.state.rage
+    local slamCost = AbilityCost("SLAM")
+    local rage = State().rage
 
     if aoeActive and TargetAbilityAvailable("WHIRLWIND")
-        and rage >= ns.GetAbilityCost("WHIRLWIND")
-        and rage < ns.GetAbilityCost("WHIRLWIND") + slamCost then
+        and rage >= AbilityCost("WHIRLWIND")
+        and rage < AbilityCost("WHIRLWIND") + slamCost then
         return true
     end
 
     if TargetAbilityAvailable("MORTAL_STRIKE")
-        and rage >= ns.GetAbilityCost("MORTAL_STRIKE")
-        and rage < ns.GetAbilityCost("MORTAL_STRIKE") + slamCost then
+        and rage >= AbilityCost("MORTAL_STRIKE")
+        and rage < AbilityCost("MORTAL_STRIKE") + slamCost then
         return true
     end
     return false
 end
 
 local function CanSlamNow(aoeActive, surplusOnly)
-    if not ns.IsImprovedSlamReady() then return false end
-    if not ns.IsSlamWindowOpen() then return false end
-    if ns.state.moving then return false end
-    if ns.GetGCDRemaining() > ns.CONFIG.SLAM_GCD_WAIT_TOLERANCE then return false end
+    if not ImprovedSlamReady() then return false end
+    if not SlamWindowOpen() then return false end
+    if State().moving then return false end
+    if GCDRemaining() > ns.CONFIG.SLAM_GCD_WAIT_TOLERANCE then return false end
     if not TargetAbilityAvailable("SLAM", ns.CONFIG.SLAM_GCD_WAIT_TOLERANCE) then return false end
     if CoreAttackWouldBeStarvedBySlam(aoeActive) then return false end
 
     if surplusOnly then
         local reserve = 0
         if aoeActive and Knows("WHIRLWIND") then
-            reserve = ns.GetAbilityCost("WHIRLWIND")
+            reserve = AbilityCost("WHIRLWIND")
         elseif Knows("MORTAL_STRIKE") then
-            reserve = ns.GetAbilityCost("MORTAL_STRIKE")
+            reserve = AbilityCost("MORTAL_STRIKE")
         end
-        return ns.state.rage >= ns.GetAbilityCost("SLAM") + reserve
+        return State().rage >= AbilityCost("SLAM") + reserve
     end
     return true
 end
 
 local function SweepingStrikesRequiredRage()
-    local required = ns.GetAbilityCost("SWEEPING_STRIKES")
+    local required = AbilityCost("SWEEPING_STRIKES")
 
     if Knows("WHIRLWIND") then
-        required = required + ns.GetAbilityCost("WHIRLWIND")
+        required = required + AbilityCost("WHIRLWIND")
     elseif Knows("MORTAL_STRIKE") then
-        required = required + ns.GetAbilityCost("MORTAL_STRIKE")
+        required = required + AbilityCost("MORTAL_STRIKE")
     end
 
     if Knows("CLEAVE") then
-        required = required + ns.GetAbilityCost("CLEAVE")
+        required = required + AbilityCost("CLEAVE")
     end
-    return math.min(ns.state.maxRage or 100, required)
+    return math.min(State().maxRage or 100, required)
 end
 
 local function CanUseSweepingStrikes()
     if not Ready("SWEEPING_STRIKES") then return false end
-    if ns.state.sweepingExpiration > GetTime() then return false end
-    return ns.state.rage >= SweepingStrikesRequiredRage()
+    if State().sweepingExpiration > Now() then return false end
+    return State().rage >= SweepingStrikesRequiredRage()
 end
 
 local function PrecombatDecision()
@@ -198,12 +279,12 @@ local function PrecombatDecision()
     end
 
     local shout = ShouldRefreshShout()
-    if shout and ns.state.rage >= ns.GetAbilityCost(shout) then
+    if shout and State().rage >= AbilityCost(shout) then
         return Decision(shout, "Maintain your assigned shout")
     end
 
-    if ns.state.targetAttackable
-        and not ns.state.inCombat
+    if State().targetAttackable
+        and not State().inCombat
         and TargetAbilityAvailable("CHARGE") then
         return Decision("CHARGE", "Open the fight and generate Rage")
     end
@@ -232,7 +313,7 @@ local function LevelingSingleTargetDecision()
         return Decision("WHIRLWIND", "Extra single-target damage")
     end
 
-    if ns.state.targetHPPercent <= ns.CONFIG.EXECUTE_HP_PCT
+    if State().targetHPPercent <= ns.CONFIG.EXECUTE_HP_PCT
         and TargetAbilityAvailable("EXECUTE") then
         return Decision("EXECUTE", "Finish the target")
     end
@@ -271,7 +352,7 @@ local function EndgameSingleTargetDecision()
 
     -- Default two-handed Execute model: preserve Slam/MS/WW and
     -- use Execute only in an otherwise empty GCD.
-    if ns.state.targetHPPercent <= ns.CONFIG.EXECUTE_HP_PCT
+    if State().targetHPPercent <= ns.CONFIG.EXECUTE_HP_PCT
         and TargetAbilityAvailable("EXECUTE") then
         return Decision("EXECUTE", "Execute-phase filler")
     end
@@ -303,7 +384,7 @@ local function AoeDecision(enemyCount)
 
     -- Before the endgame Slam profile exists, Battle Shout is a
     -- high-value first global for both solo packs and dungeons.
-    if not ns.IsImprovedSlamReady() then
+    if not ImprovedSlamReady() then
         local shout = ShouldRefreshShout()
         if shout then
             return Decision(shout, "Maintain your assigned shout")
@@ -325,7 +406,7 @@ local function AoeDecision(enemyCount)
         return Decision("MORTAL_STRIKE", "Primary-target attack")
     end
 
-    if ns.state.targetHPPercent <= ns.CONFIG.EXECUTE_HP_PCT
+    if State().targetHPPercent <= ns.CONFIG.EXECUTE_HP_PCT
         and TargetAbilityAvailable("EXECUTE") then
         return Decision("EXECUTE", "Finish the priority target")
     end
@@ -361,62 +442,62 @@ local function AoeDecision(enemyCount)
 end
 
 local function UpcomingCoreReserve(aoeActive)
-    local swingHorizon = math.max(1.5, ns.GetSwingRemaining() + 1.5)
+    local swingHorizon = math.max(1.5, SwingRemaining() + 1.5)
 
     if aoeActive then
         if Knows("WHIRLWIND")
-            and ns.GetAbilityCooldownRemaining("WHIRLWIND", true) <= swingHorizon then
-            return ns.GetAbilityCost("WHIRLWIND")
+            and CooldownRemaining("WHIRLWIND") <= swingHorizon then
+            return AbilityCost("WHIRLWIND")
         end
         if Knows("MORTAL_STRIKE")
-            and ns.GetAbilityCooldownRemaining("MORTAL_STRIKE", true) <= swingHorizon then
-            return ns.GetAbilityCost("MORTAL_STRIKE")
+            and CooldownRemaining("MORTAL_STRIKE") <= swingHorizon then
+            return AbilityCost("MORTAL_STRIKE")
         end
     else
         if Knows("MORTAL_STRIKE")
-            and ns.GetAbilityCooldownRemaining("MORTAL_STRIKE", true) <= swingHorizon then
-            return ns.GetAbilityCost("MORTAL_STRIKE")
+            and CooldownRemaining("MORTAL_STRIKE") <= swingHorizon then
+            return AbilityCost("MORTAL_STRIKE")
         end
         if Knows("WHIRLWIND")
-            and ns.GetAbilityCooldownRemaining("WHIRLWIND", true) <= swingHorizon then
-            return ns.GetAbilityCost("WHIRLWIND")
+            and CooldownRemaining("WHIRLWIND") <= swingHorizon then
+            return AbilityCost("WHIRLWIND")
         end
     end
     return 0
 end
 
 local function QueueDecision(aoeActive)
-    if not ns.db.showQueue then return nil end
-    if not ns.state.inCombat or not ns.state.targetAttackable then return nil end
-    if ns.state.nextMainhandSwing <= GetTime() then return nil end
+    if not Settings().showQueue then return nil end
+    if not State().inCombat or not State().targetAttackable then return nil end
+    if State().nextMainhandSwing <= Now() then return nil end
 
     -- Preserve Rage for Execute rather than consuming the next white
     -- swing and its Rage generation.
-    if ns.state.targetHPPercent <= ns.CONFIG.EXECUTE_HP_PCT then return nil end
+    if State().targetHPPercent <= ns.CONFIG.EXECUTE_HP_PCT then return nil end
 
     local key = aoeActive and "CLEAVE" or "HEROIC_STRIKE"
     if not TargetAbilityAvailable(key) then return nil end
 
     if aoeActive and Ready("SWEEPING_STRIKES")
-        and ns.state.sweepingExpiration <= GetTime()
-        and ns.state.rage < SweepingStrikesRequiredRage() then
+        and State().sweepingExpiration <= Now()
+        and State().rage < SweepingStrikesRequiredRage() then
         return nil
     end
 
     local reserve = UpcomingCoreReserve(aoeActive) + ns.CONFIG.RAGE_RESERVE_BUFFER
-    if ns.IsImprovedSlamReady() then
-        reserve = reserve + ns.GetAbilityCost("SLAM")
+    if ImprovedSlamReady() then
+        reserve = reserve + AbilityCost("SLAM")
     end
 
-    local threshold = ns.GetAbilityCost(key) + reserve
+    local threshold = AbilityCost(key) + reserve
     if aoeActive then
         threshold = math.max(60, threshold)
     else
         threshold = math.max(70, threshold)
     end
-    threshold = math.min(ns.state.maxRage or 100, threshold)
+    threshold = math.min(State().maxRage or 100, threshold)
 
-    if ns.state.rage >= threshold then
+    if State().rage >= threshold then
         return {
             ability = key,
             reason = "Queue next swing at " .. threshold .. "+ Rage",
@@ -426,16 +507,16 @@ local function QueueDecision(aoeActive)
     return nil
 end
 
-function ns.Rotation_GetSnapshot()
+local function EvaluateSnapshot()
     local aoeActive, enemyCount = GetTargetMode()
-    local slamBuild = ns.IsImprovedSlamReady()
+    local slamBuild = ImprovedSlamReady()
     local decision
 
-    if not ns.state.inCombat then
+    if not State().inCombat then
         decision = PrecombatDecision()
     end
 
-    if not decision and ns.state.targetAttackable then
+    if not decision and State().targetAttackable then
         if aoeActive then
             decision = AoeDecision(math.max(2, enemyCount))
         elseif slamBuild then
@@ -453,6 +534,16 @@ function ns.Rotation_GetSnapshot()
         enemyCount = enemyCount,
         slamBuild = slamBuild,
     }
+end
+
+function ns.Rotation_GetSnapshot(context)
+    local previousContext = evaluationContext
+    evaluationContext = context
+    local ok, result = pcall(EvaluateSnapshot)
+    evaluationContext = previousContext
+
+    if not ok then error(result, 0) end
+    return result
 end
 
 -- Compatibility wrappers for older display/debug integrations.

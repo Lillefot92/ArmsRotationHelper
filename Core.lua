@@ -13,7 +13,7 @@ local BOOKTYPE_SPELL_VALUE = BOOKTYPE_SPELL or "spell"
 local RAGE_POWER_TYPE = (Enum and Enum.PowerType and Enum.PowerType.Rage) or 1
 
 ns.RAGE_POWER_TYPE = RAGE_POWER_TYPE
-ns.VERSION = "1.6.0-beta.2"
+ns.VERSION = "1.6.0-beta.3-dev"
 
 -- Base-rank spell IDs are used only as stable, locale-independent
 -- identifiers. When an ability is trained, the highest known rank
@@ -540,8 +540,9 @@ function ns.IsAbilityStanceAllowed(key)
     return allowed[ns.state.stance] == true
 end
 
-function ns.GetPreferredStanceForAbility(key)
-    local current = ns.state.stance
+function ns.GetPreferredStanceForAbility(key, stanceIndex)
+    local current = stanceIndex
+    if current == nil then current = ns.state.stance end
     local allowed = ABILITY_STANCES[key]
     if not allowed or allowed[current] then return nil end
     return PREFERRED_STANCE[key]
@@ -955,6 +956,40 @@ local function OnOff(value)
     return value and "ON" or "OFF"
 end
 
+local function PrintSimulatorCheck(prefix)
+    if not ns.Simulator_RunSelfCheck then
+        print(prefix .. "Simulator is not available.")
+        return
+    end
+
+    local passed, total, failures = ns.Simulator_RunSelfCheck()
+    local color = passed == total and "|cff40ff40" or "|cffff4040"
+    print(prefix .. color .. passed .. "/" .. total
+        .. " simulator checks passed.|r")
+    for _, failure in ipairs(failures) do
+        print("  |cffff6640FAIL|r " .. failure)
+    end
+end
+
+local function StartSimulator(prefix, name)
+    if not ns.Simulator_Start then
+        print(prefix .. "Simulator is not available.")
+        return
+    end
+
+    local ok, err = ns.Simulator_Start(name)
+    if not ok then
+        print(prefix .. err)
+        print(prefix .. "Use /arh sim list to see available scenarios.")
+        return
+    end
+
+    print(prefix .. "Simulator started: "
+        .. ns.Simulator_GetScenarioLabel(name) .. ".")
+    print(prefix .. "Each step lasts 3.5 seconds. Use /arh sim next or /arh sim stop.")
+    PrintSimulatorCheck(prefix)
+end
+
 SLASH_ARMSROTATIONHELPER1 = "/arh"
 SLASH_ARMSROTATIONHELPER2 = "/armshelper"
 
@@ -987,9 +1022,39 @@ SlashCmdList["ARMSROTATIONHELPER"] = function(message)
     elseif message == "debug" then
         print(prefix .. "Debug panel: " .. OnOff(ToggleSetting("debugMode")))
     elseif message == "test" then
+        if ns.Simulator_IsActive and ns.Simulator_IsActive() then
+            ns.Simulator_Stop()
+        end
         ns.db.testMode = not ns.db.testMode
         if ns.Display_SetTestMode then ns.Display_SetTestMode(ns.db.testMode) end
         print(prefix .. "Display test mode: " .. OnOff(ns.db.testMode))
+    elseif message == "sim" or message == "sim all" then
+        StartSimulator(prefix, "all")
+    elseif message == "sim stop" then
+        if ns.Simulator_Stop and ns.Simulator_Stop() then
+            print(prefix .. "Simulator stopped. Live recommendations restored.")
+        else
+            print(prefix .. "Simulator is already stopped.")
+        end
+    elseif message == "sim next" then
+        if ns.Simulator_Next and ns.Simulator_Next() then
+            print(prefix .. "Advanced to the next simulator step.")
+        else
+            print(prefix .. "Start it first with /arh sim.")
+        end
+    elseif message == "sim check" then
+        PrintSimulatorCheck(prefix)
+    elseif message == "sim list" then
+        local names = ns.Simulator_GetScenarioNames
+            and ns.Simulator_GetScenarioNames() or {}
+        print(prefix .. "Simulator scenarios:")
+        print("  all - complete suite")
+        for _, name in ipairs(names) do
+            print("  " .. name .. " - " .. ns.Simulator_GetScenarioLabel(name))
+        end
+    elseif message:match("^sim%s+") then
+        local name = message:match("^sim%s+(%a+)")
+        StartSimulator(prefix, name)
     elseif message == "mode" then
         local order = { auto = "single", single = "aoe", aoe = "auto" }
         ns.db.mode = order[ns.db.mode] or "auto"
@@ -1045,6 +1110,8 @@ SlashCmdList["ARMSROTATIONHELPER"] = function(message)
         print("  /arh scale 1.2            - resize the complete display")
         print("  /arh debug                - toggle live diagnostic information")
         print("  /arh test                 - preview the high-level display")
+        print("  /arh sim [scenario]       - run deterministic rotation scenarios")
+        print("  /arh sim next|stop|check  - control or verify the simulator")
         print("  /arh reset                - reset display position and scale")
     end
 end

@@ -14,6 +14,27 @@ and level-70 raid conditions.
    remain visible for the complete preview.
 5. Turn test mode off with `/arh test`.
 
+## Simulator checks
+
+1. Run `/arh sim check`. It should report `23/23 simulator checks passed`.
+2. Run `/arh sim`. Confirm that a blue `SIMULATION` banner and the simulator
+   diagnostic panel stay visible throughout the complete suite.
+3. Confirm each diagnostic step says `RESULT: PASS`.
+4. Confirm simulated recommendations do not glow live action-bar buttons and
+   that the live trinket/cooldown row is hidden during the run.
+5. Use `/arh sim next` to advance immediately, then `/arh sim stop` to restore
+   live recommendations.
+
+Individual groups can be repeated with:
+
+- `/arh sim leveling` - low-level shout, Rend, and high-Rage Heroic Strike.
+- `/arh sim slam` - post-swing Slam, Mortal Strike, and Whirlwind rhythm.
+- `/arh sim rage` - Mortal Strike/Whirlwind Rage protection.
+- `/arh sim execute` - no-weapon-swap Execute filler priority.
+- `/arh sim overpower` - target-specific dodge proc and stance advice.
+- `/arh sim aoe` - two-, three-, and four-target priorities.
+- `/arh sim cleave` - Sweeping Strikes pooling and Cleave queue thresholds.
+
 ## Level 7 checks
 
 - Select an attackable target out of combat. Charge should appear when usable,
