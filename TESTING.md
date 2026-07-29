@@ -1,0 +1,107 @@
+# Beta Testing Checklist
+
+This build is deliberately labeled beta. The Lua files have been syntax-checked,
+but the recommendations still need in-game validation across leveling, dungeons,
+and level-70 raid conditions.
+
+## Before testing
+
+1. Exit World of Warcraft and back up the existing addon folder.
+2. Install the beta and start the Anniversary client.
+3. Run `/console scriptErrors 1`, then `/reload`.
+4. Run `/arh test`. Confirm the main, stance, queue, swing, and cooldown visuals
+   appear and move together after `/arh unlock`. A red `TEST MODE` banner must
+   remain visible for the complete preview.
+5. Turn test mode off with `/arh test`.
+
+## Level 7 checks
+
+- Select an attackable target out of combat. Charge should appear when usable,
+  unless a castable assigned shout needs refreshing first.
+- After entering combat, Battle Shout should be maintained when Rage permits.
+- Rend should be recommended only when it is missing and the target is expected
+  to live long enough.
+- After Rend is active, periods with no primary icon are normal. Continue white
+  swinging and building Rage.
+- After at least one main-hand attack is observed, the swing bar should restart
+  on every ordinary white swing.
+- The swing bar must continue showing remaining swing time at this level; it
+  must not display `SLAM` when Slam or the complete Improved Slam profile is
+  unavailable.
+- Heroic Strike should only appear in the small queue icon at high Rage, not as
+  an ordinary low-Rage main recommendation.
+- `/arh stance` should cleanly hide or show stance prompts.
+
+Use `/arh debug` while checking these items. The debug panel should show current
+Rage, target health, target time-to-die, swing time, known profile, and the
+reason for each recommendation.
+
+## Ability milestone checks while leveling
+
+Repeat a short target-dummy or outdoor test whenever a new Warrior ability is
+learned:
+
+- Sunder Armor: never maintained by default; `/arh sunder` enables the assigned
+  five-stack behavior on sufficiently durable targets.
+- Overpower: appears only for the target that dodged and disappears after use or
+  after the dodge window expires.
+- Cleave: appears in the queue position during multi-target combat.
+- Execute: appears below 20%; in the future Slam profile it remains filler after
+  Slam, Mortal Strike, and Whirlwind.
+- Slam: the addon should not switch to the endgame Slam profile until its
+  spellbook cast time indicates the fully improved fast cast.
+- Whirlwind and Mortal Strike: single-target Whirlwind must not consume Rage
+  needed for an imminent Mortal Strike.
+
+## Level-70 single-target checks
+
+Test on a target dummy or durable boss target:
+
+- Let a white main-hand swing land. Slam should flash immediately after that
+  swing, not late in the following swing cycle.
+- Casting Slam should restart the predicted main-hand timer.
+- A haste gain or loss should rescale the remaining swing time without restarting
+  the bar from zero.
+- Sword Specialization/Windfury-style extra attacks should not restart the
+  underlying TBC swing timer.
+- Mortal Strike should be prioritized when ready.
+- Whirlwind should be used on one target when it will not starve Mortal Strike.
+- Below 20%, Execute should fill otherwise empty globals; it should not replace a
+  valid post-swing Slam, ready Mortal Strike, or safe Whirlwind.
+- No weapon swap should be suggested or performed.
+- Heroic Strike should be suppressed below 20% and whenever its Rage cost would
+  compromise the protected core sequence.
+
+## Dungeon and AoE checks
+
+- In `/arh mode auto`, two recently engaged enemies should activate the AoE
+  profile. Use `/arh mode aoe` to test it deterministically.
+- Sweeping Strikes should wait until enough Rage is pooled for the intended
+  follow-up.
+- Whirlwind should lead the repeatable multi-target attacks.
+- Cleave should use the separate queue icon.
+- Slam should appear only as surplus-Rage AoE filler.
+- Return to `/arh mode auto` after forced testing.
+
+## Action-bar and localization checks
+
+- Put a recommended ability directly on a Blizzard action bar. Its visible
+  button should glow.
+- Repeat with a macro whose recognized spell is that ability.
+- If installed, repeat on Bartender4 or Dominos.
+- On a non-English client, run `/arh debug spells`; learned abilities should
+  print with localized names and recommendations should retain valid icons.
+
+## Bug report template
+
+Include:
+
+- Client version and language.
+- Character level, talents, stance, weapon speed, and approximate Rage.
+- Target health percentage and whether the test was single-target or AoE.
+- The recommendation shown and the recommendation expected.
+- Whether `/arh mode auto`, `single`, or `aoe` was active.
+- A screenshot of `/arh debug`.
+- The exact Lua error text, if any.
+- Whether the ability was placed directly or through a macro, and which action
+  bar addon was used.

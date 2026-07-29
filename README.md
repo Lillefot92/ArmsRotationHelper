@@ -1,0 +1,97 @@
+# Arms Rotation Helper
+
+Arms Rotation Helper is a swing-aware PvE rotation advisor for two-handed Arms
+Warriors in World of Warcraft: The Burning Crusade Anniversary.
+
+This beta adapts to the abilities the current character actually knows, so it
+can be tested while leveling and naturally grows into the level-70 Slam
+rotation. It only recommends actions; it never casts spells or automates input.
+
+## What it shows
+
+- A primary ability recommendation.
+- A main-hand swing bar and short post-swing Slam window.
+- A separate Heroic Strike or Cleave next-swing queue suggestion.
+- Optional stance advice.
+- Action-bar highlighting for Blizzard bars, Bartender4, and Dominos.
+- A small cooldown row for Death Wish, Recklessness, and equipped trinkets.
+- Automatic single-target/AoE selection, with manual overrides.
+
+## Rotation model
+
+The level-70 single-target model is built around the established two-handed
+Arms rhythm:
+
+1. Slam immediately after a main-hand swing when it will not starve a ready
+   core attack.
+2. Mortal Strike.
+3. Whirlwind, while preserving the next Mortal Strike.
+4. Execute as filler below 20% when the core actions are unavailable.
+5. Overpower, assigned Sunder Armor, shout refresh, and Bloodrage as
+   situational filler.
+
+The AoE model pools enough Rage for Sweeping Strikes before recommending it,
+then favors Whirlwind, Mortal Strike, Execute on the priority target, and
+Cleave. Slam is only recommended with surplus Rage in multi-target combat.
+
+Heroic Strike and Cleave are deliberately kept out of the main icon. Their
+separate queue icon appears only at high Rage and protects Rage for an upcoming
+Slam, Mortal Strike, Whirlwind, or Sweeping Strikes sequence.
+
+No weapon-swap Execute model is included.
+
+Before a fully improved Slam is known, the addon uses a leveling priority:
+assigned shout, Victory Rush, Overpower, Mortal Strike/Whirlwind when learned,
+Execute, worthwhile Rend, optional Sunder assignment, and Bloodrage. At very
+low levels, quiet time between recommendations is expected: keep auto-attacking
+and avoid spending Rage on Heroic Strike unless its queue icon appears.
+
+## Commands
+
+Use `/arh` or `/armshelper`.
+
+- `/arh unlock` and `/arh lock` - move or lock the complete display.
+- `/arh scale 1.2` - set the display scale from 0.3 to 3.
+- `/arh mode auto|single|aoe` - choose target-count behavior.
+- `/arh shout battle|commanding` - select the assigned shout.
+- `/arh stance` - toggle optional stance advice.
+- `/arh swing` - toggle the main-hand swing bar.
+- `/arh queue` - toggle Heroic Strike/Cleave queue advice.
+- `/arh sunder` - toggle the five-stack Sunder Armor assignment.
+- `/arh icon`, `/arh glow`, `/arh cooldowns` - toggle display parts.
+- `/arh test` - preview the high-level display.
+- `/arh debug` - show live state and decision information.
+- `/arh debug spells` - print localized spellbook entries.
+- `/arh reset` - reset display position and scale.
+
+## Installation
+
+1. Exit World of Warcraft.
+2. Back up any existing `ArmsRotationHelper` folder.
+3. Extract the archive into:
+   `World of Warcraft/_anniversary_/Interface/AddOns`
+4. Confirm that the final path contains
+   `ArmsRotationHelper/ArmsRotationHelper.toc`.
+5. Start the game, enable the addon, then enter `/arh test`.
+
+See `TESTING.md` for the beta checklist and useful bug-report details.
+
+## Design references
+
+The default priority is based on the current Wowhead TBC Arms Warrior PvE
+rotation guide and cross-checked against the open-source WoWSims TBC Warrior
+rotation model:
+
+- https://www.wowhead.com/tbc/guide/classes/warrior/dps-rotation-cooldowns-abilities-pve
+- https://github.com/wowsims/tbc/blob/v1.9.3/sim/warrior/dps/rotation.go
+
+## Beta limitations
+
+- Automatic enemy counting is inferred from recent combat-log interactions. It
+  cannot know every nearby unengaged enemy; use `/arh mode aoe` when needed.
+- The addon does not predict future Rage from incoming damage.
+- A player must validate the level-70 sequence in real dungeons and raids before
+  the project should be called release-ready.
+- A public license and final CurseForge author/project metadata still need to be
+  selected before publication.
+
