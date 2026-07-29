@@ -1,13 +1,13 @@
 -- ============================================================
 -- Arms Rotation Helper - Settings.lua
 -- In-game configuration panel for rotation, display, preview,
--- positioning, and deterministic simulator controls.
+-- positioning, deterministic simulator, and diagnostic controls.
 -- ============================================================
 
 local ADDON_NAME, ns = ...
 
 local PANEL_WIDTH = 620
-local PANEL_HEIGHT = 610
+local PANEL_HEIGHT = 660
 
 local panel = CreateFrame(
     "Frame",
@@ -73,7 +73,12 @@ end
 
 local rotationHeader = CreateSectionHeader("Rotation", 24, -78, 270)
 local displayHeader = CreateSectionHeader("Display", 326, -78, 270)
-local toolsHeader = CreateSectionHeader("Preview and simulator", 24, -382, 572)
+local toolsHeader = CreateSectionHeader(
+    "Preview, simulator, and diagnostics",
+    24,
+    -382,
+    572
+)
 
 local controls = {}
 local refreshing = false
@@ -425,11 +430,56 @@ local checkSimulatorButton = CreateButton(
     end
 )
 
+local recordButton
+recordButton = CreateButton(
+    "Start 60-second recording",
+    220,
+    28,
+    -482,
+    function()
+        if not ns.Diagnostics_Start then return end
+        if ns.Diagnostics_IsActive and ns.Diagnostics_IsActive() then
+            ns.Diagnostics_Stop()
+            statusOverride = "Diagnostic recording stopped. Open the report to copy it."
+        else
+            local ok, err = ns.Diagnostics_Start()
+            if ok then
+                statusOverride = nil
+            else
+                statusOverride = "|cffff6640" .. tostring(err) .. "|r"
+            end
+        end
+        ns.Settings_Refresh()
+    end
+)
+
+local openReportButton = CreateButton(
+    "Open report",
+    106,
+    28,
+    -515,
+    function()
+        if ns.Diagnostics_OpenReport then ns.Diagnostics_OpenReport() end
+    end
+)
+
+local clearReportButton = CreateButton(
+    "Clear report",
+    106,
+    142,
+    -515,
+    function()
+        if ns.Diagnostics_Clear then ns.Diagnostics_Clear() end
+        statusOverride = "The in-memory diagnostic report was cleared."
+        ns.Settings_Refresh()
+    end
+)
+
 local resetButton = CreateButton(
     "Reset position and scale",
     220,
     28,
-    -515,
+    -548,
     function()
         if not ns.db then return end
         ns.db.point, ns.db.x, ns.db.y, ns.db.scale =
@@ -441,11 +491,12 @@ local resetButton = CreateButton(
 )
 
 local helpText = panel:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-helpText:SetPoint("TOPLEFT", panel, "TOPLEFT", 28, -557)
+helpText:SetPoint("TOPLEFT", panel, "TOPLEFT", 28, -590)
 helpText:SetWidth(PANEL_WIDTH - 56)
 helpText:SetJustifyH("LEFT")
 helpText:SetText(
-    "Tip: unlock the recommendation display, drag it into place, then lock it again. Simulation never changes live combat state."
+    "Tip: the 60-second report is stored only in memory and never includes "
+        .. "character, realm, or target names. Open it and press Ctrl+C to copy."
 )
 
 local function UpdateDropdown(dropdown)
@@ -505,6 +556,20 @@ function ns.Settings_Refresh()
     nextSimulatorButton:SetEnabled(simulatorActive)
     stopSimulatorButton:SetEnabled(simulatorActive)
 
+    local diagnosticStatus = ns.Diagnostics_GetStatus
+        and ns.Diagnostics_GetStatus() or nil
+    local recordingActive = diagnosticStatus and diagnosticStatus.active
+    recordButton:SetText(
+        recordingActive and "Stop recording" or "Start 60-second recording"
+    )
+    openReportButton:SetEnabled(
+        diagnosticStatus == nil or diagnosticStatus.hasReport
+    )
+    clearReportButton:SetEnabled(
+        diagnosticStatus ~= nil
+            and (diagnosticStatus.hasReport or diagnosticStatus.active)
+    )
+
     if simulatorActive and ns.Simulator_GetStatus then
         local status = ns.Simulator_GetStatus()
         if status then
@@ -516,6 +581,13 @@ function ns.Settings_Refresh()
                 status.stepLabel or ""
             ))
         end
+    elseif recordingActive then
+        statusText:SetText(string.format(
+            "|cff55ccffRecording live decisions: %.0fs remaining "
+                .. "(%d entries).|r",
+            diagnosticStatus.remaining,
+            diagnosticStatus.entryCount
+        ))
     elseif ns.db.testMode then
         statusText:SetText("|cffff6640Display preview is active.|r")
     elseif statusOverride then
@@ -554,7 +626,8 @@ panel:SetScript("OnUpdate", function(_, elapsed)
     statusElapsed = statusElapsed + elapsed
     if statusElapsed < 0.25 then return end
     statusElapsed = 0
-    if ns.Simulator_IsActive and ns.Simulator_IsActive() then
+    if (ns.Simulator_IsActive and ns.Simulator_IsActive())
+        or (ns.Diagnostics_IsActive and ns.Diagnostics_IsActive()) then
         ns.Settings_Refresh()
     end
 end)

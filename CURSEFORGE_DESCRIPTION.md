@@ -22,9 +22,11 @@ Heroic Strike/Cleave next-swing queue advice.
 - Cooldown and trinket row.
 - In-game settings panel.
 - Deterministic rotation simulator, display preview, and live debug tools.
+- Privacy-safe 60-second decision recorder with a copyable tester report.
 
 The addon is an advisor only. It does not cast abilities, change equipment, or
 automate player input.
 
 This is a beta build. Feedback from level-70 heroic dungeons and raids is
-especially valuable; please include a screenshot of `/arh debug` with reports.
+especially valuable; please include the copyable `/arh report` text and a
+short video or `/arh debug` screenshot when possible.

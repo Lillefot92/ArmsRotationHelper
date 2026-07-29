@@ -18,8 +18,10 @@ rotation. It only recommends actions; it never casts spells or automates input.
 - Automatic single-target/AoE selection, with manual overrides.
 - A deterministic rotation simulator for validating priorities without a
   level-70 character or live combat.
+- An opt-in 60-second live decision recorder with a privacy-safe, copyable
+  report for remote testing.
 - An in-game settings panel for rotation, display, positioning, preview, and
-  simulator controls.
+  simulator/diagnostic controls.
 
 ## Rotation model
 
@@ -77,6 +79,11 @@ available as a slash command for quick access.
   scenario group.
 - `/arh sim next|stop|check|list` - control the simulator or run all automated
   priority checks.
+- `/arh record` or `/arh record start|stop` - capture up to 60 seconds of live
+  recommendations, Rage, target health, swing timing, and key swing events.
+- `/arh report` - open and select the diagnostic report so it can be copied
+  with Ctrl+C.
+- `/arh record clear` - erase the in-memory diagnostic report.
 - `/arh debug` - show live state and decision information.
 - `/arh debug spells` - print localized spellbook entries.
 - `/arh reset` - reset display position and scale.
@@ -90,7 +97,8 @@ legacy Interface Options fallback.
 Changes apply immediately. The panel includes target mode, assigned shout,
 stance, Sunder, and talented Demoralizing Shout options, all display toggles,
 scale and locking controls, display preview, named simulator scenarios, manual
-simulator steps, and the complete 26-check rotation test.
+simulator steps, the complete 26-check rotation test, and live
+record/start/stop/report controls.
 
 ## Installation
 
@@ -119,6 +127,21 @@ complete run. Action-bar glow and the live cooldown row are suppressed during
 simulation so test recommendations cannot be mistaken for live prompts.
 
 Use `/arh sim stop` to return immediately to live recommendations.
+
+## Privacy-safe diagnostic recorder
+
+The recorder makes useful remote testing possible even when a tester cannot
+record video. Start it immediately before combat with `/arh record`, play
+normally for up to 60 seconds, then use `/arh report`. The report text is
+selected automatically; press Ctrl+C and paste it into the bug report.
+
+The report contains only addon/client versions, level, relevant settings,
+talent/profile state, recommendation keys, Rage, target health percentage,
+estimated time-to-die, enemy count, stance number, swing/GCD timing, and
+anonymous combat events. It never reads or stores account, character, realm,
+or target names, chat text, unit GUIDs, or item links. Recordings remain only
+in memory and are lost on reload/logout. Preview and simulator data cannot be
+mixed into a live recording.
 
 ## Design references
 

@@ -531,6 +531,11 @@ function ns.Simulator_Start(name)
         return false, "Unknown scenario '" .. tostring(name) .. "'."
     end
 
+    if ns.Diagnostics_IsActive and ns.Diagnostics_IsActive()
+        and ns.Diagnostics_Stop then
+        ns.Diagnostics_Stop("simulator")
+    end
+
     runtime.active = true
     runtime.name = name
     runtime.stepIndex = 1

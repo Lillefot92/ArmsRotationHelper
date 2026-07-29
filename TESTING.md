@@ -31,6 +31,28 @@ and level-70 raid conditions.
 7. Start and stop display preview from the panel.
 8. Select one simulator scenario, start it, advance one step, stop it, and run
    the 26 priority checks from the panel.
+9. Start a diagnostic recording, confirm the status counts down from 60
+   seconds, stop it, and open the report. The report should already be
+   selected for Ctrl+C.
+
+## Remote diagnostic recording
+
+This is the preferred test while waiting for a level-70 tester:
+
+1. Set the intended target mode and maintenance assignments before recording.
+2. Stand ready at the target dummy; do not start preview or the simulator.
+3. Enter `/arh record` immediately before attacking.
+4. Play normally for 30-60 seconds. The recorder stops automatically at 60
+   seconds, or `/arh record stop` ends it early.
+5. Enter `/arh report`, press Ctrl+C, and paste the complete text into the test
+   report. A short video remains helpful but is no longer required.
+6. Confirm the privacy line says the report contains no player, realm,
+   account, or target names, chat, GUIDs, or item links.
+7. Use `/arh record clear` after sharing if desired. The report is also erased
+   automatically by `/reload`, logout, or closing the game.
+
+Start display preview or the simulator during an active recording only to test
+the safeguard: recording should stop before simulated recommendations begin.
 
 ## Simulator checks
 
@@ -139,12 +161,11 @@ Test on a target dummy or durable boss target:
 
 Include:
 
-- Client version and language.
-- Character level, talents, stance, weapon speed, and approximate Rage.
-- Target health percentage and whether the test was single-target or AoE.
+- The complete `/arh report` text when possible.
+- Client language (the report already includes version and build).
+- Relevant talent details not represented by the recorded profile.
 - The recommendation shown and the recommendation expected.
-- Whether `/arh mode auto`, `single`, or `aoe` was active.
-- A screenshot of `/arh debug`.
+- A short video or screenshot of `/arh debug` if available.
 - The exact Lua error text, if any.
 - Whether the ability was placed directly or through a macro, and which action
   bar addon was used.

@@ -705,6 +705,12 @@ local function BuildTestSnapshot()
 end
 
 function ns.Display_SetTestMode(enabled)
+    if enabled
+        and ns.Diagnostics_IsActive
+        and ns.Diagnostics_IsActive()
+        and ns.Diagnostics_Stop then
+        ns.Diagnostics_Stop("preview")
+    end
     ns.db.testMode = enabled == true
     testModeStartedAt = GetTime()
 end
@@ -862,6 +868,7 @@ ticker:SetScript("OnUpdate", function(_, elapsed)
     if not ok then ns.ReportOnce("State refresh", err) end
 
     local snapshot = BuildSnapshot()
+    SafeUpdate("Diagnostic recorder", ns.Diagnostics_Sample or function() end, snapshot)
     SafeUpdate("Main icon", UpdateMainIcon, snapshot)
     SafeUpdate("Test/simulation banner", UpdateTestBanner, snapshot)
     SafeUpdate("Stance icon", UpdateStanceIcon, snapshot)

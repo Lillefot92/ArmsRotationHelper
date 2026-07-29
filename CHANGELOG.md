@@ -2,6 +2,18 @@
 
 ## 1.6.0-beta.3 (development)
 
+### Privacy-safe diagnostic recorder
+
+- Added an opt-in 60-second recorder for live recommendations, Rage, target
+  health percentage/time-to-die, swing/Slam/GCD timing, stance, target count,
+  movement, and anonymous swing events.
+- Added a copyable in-game report window plus `/arh record`,
+  `/arh record start|stop|clear`, and `/arh report`.
+- Kept reports session-only and excluded account, character, realm, and target
+  names, chat, GUIDs, and item links.
+- Added safeguards that stop recording before display preview or simulation,
+  preventing synthetic decisions from contaminating a live report.
+
 ### Settings panel
 
 - Added an in-game panel for rotation mode, assigned shout, stance advice,

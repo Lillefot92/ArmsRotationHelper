@@ -13,7 +13,7 @@ local BOOKTYPE_SPELL_VALUE = BOOKTYPE_SPELL or "spell"
 local RAGE_POWER_TYPE = (Enum and Enum.PowerType and Enum.PowerType.Rage) or 1
 
 ns.RAGE_POWER_TYPE = RAGE_POWER_TYPE
-ns.VERSION = "1.6.0-beta.3-dev.4"
+ns.VERSION = "1.6.0-beta.3-dev.5"
 
 -- Base-rank spell IDs are used only as stable, locale-independent
 -- identifiers. When an ability is trained, the highest known rank
@@ -671,6 +671,10 @@ function ns.UpdateAttackSpeed()
         ns.state.nextMainhandSwing = now + fractionRemaining * newSpeed
     end
     ns.state.mainhandSpeed = newSpeed
+    if oldSpeed > 0 and math.abs(newSpeed - oldSpeed) > 0.01
+        and ns.Diagnostics_AddEvent then
+        ns.Diagnostics_AddEvent("SWING_SPEED", newSpeed)
+    end
 end
 
 function ns.ResetSwingTracking()
@@ -702,11 +706,20 @@ function ns.RecordMainhandSwing(now, replacement, destGUID)
     if not replacement and ns.state.pendingExtraAttacks > 0 then
         ns.state.pendingExtraAttacks = ns.state.pendingExtraAttacks - 1
         ns.state.ignoredExtraAttacks = ns.state.ignoredExtraAttacks + 1
+        if ns.Diagnostics_AddEvent then
+            ns.Diagnostics_AddEvent(
+                "EXTRA_ATTACK_IGNORED",
+                ns.state.pendingExtraAttacks
+            )
+        end
         return false
     end
 
     if not IsExpectedMainhandSwing(now) then
         ns.state.ignoredExtraAttacks = ns.state.ignoredExtraAttacks + 1
+        if ns.Diagnostics_AddEvent then
+            ns.Diagnostics_AddEvent("EARLY_SWING_IGNORED")
+        end
         return false
     end
 
@@ -716,6 +729,12 @@ function ns.RecordMainhandSwing(now, replacement, destGUID)
     ns.state.slamWindowEnd = now + ns.CONFIG.SLAM_REACTION_WINDOW
     ns.state.swingTargetGUID = destGUID
     ns.state.lastSwingWasReplacement = replacement == true
+    if ns.Diagnostics_AddEvent then
+        ns.Diagnostics_AddEvent(
+            replacement and "REPLACEMENT_SWING" or "MAINHAND_SWING",
+            ns.state.mainhandSpeed
+        )
+    end
     return true
 end
 
@@ -725,6 +744,9 @@ local function RecordSlamCompletion(now)
     ns.state.slamWindowStart = 0
     ns.state.slamWindowEnd = 0
     ns.state.nextMainhandSwing = now + math.max(0.1, ns.state.mainhandSpeed)
+    if ns.Diagnostics_AddEvent then
+        ns.Diagnostics_AddEvent("SLAM_CAST", ns.state.mainhandSpeed)
+    end
 end
 
 function ns.GetSwingRemaining()
@@ -1001,10 +1023,18 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
         local unit = ...
         if unit == "player" then ns.UpdateAttackSpeed() end
     elseif event == "PLAYER_REGEN_ENABLED" then
+        if ns.Diagnostics_AddEvent then
+            ns.Diagnostics_AddEvent("COMBAT_END")
+        end
         ns.state.nearbyEnemies = {}
         ns.state.enemyCount = ns.state.targetAttackable and 1 or 0
         ns.ResetSwingTracking()
-    elseif event == "PLAYER_REGEN_DISABLED" or event == "PLAYER_TARGET_CHANGED" then
+    elseif event == "PLAYER_REGEN_DISABLED" then
+        if ns.Diagnostics_AddEvent then
+            ns.Diagnostics_AddEvent("COMBAT_START")
+        end
+        ns.RefreshState()
+    elseif event == "PLAYER_TARGET_CHANGED" then
         ns.RefreshState()
     elseif event == "COMBAT_LOG_EVENT_UNFILTERED" then
         local ok, err = pcall(HandleCombatLogEvent)
@@ -1054,6 +1084,12 @@ local function StartSimulator(prefix, name)
     if not ns.Simulator_Start then
         print(prefix .. "Simulator is not available.")
         return
+    end
+
+    if ns.Diagnostics_IsActive and ns.Diagnostics_IsActive()
+        and ns.Diagnostics_Stop then
+        ns.Diagnostics_Stop("simulator")
+        print(prefix .. "Diagnostic recording stopped before simulation.")
     end
 
     local ok, err = ns.Simulator_Start(name)
@@ -1121,6 +1157,13 @@ SlashCmdList["ARMSROTATIONHELPER"] = function(message)
     elseif message == "debug" then
         print(prefix .. "Debug panel: " .. OnOff(ToggleSetting("debugMode")))
     elseif message == "test" then
+        if not ns.db.testMode
+            and ns.Diagnostics_IsActive
+            and ns.Diagnostics_IsActive()
+            and ns.Diagnostics_Stop then
+            ns.Diagnostics_Stop("preview")
+            print(prefix .. "Diagnostic recording stopped before display preview.")
+        end
         if ns.Simulator_IsActive and ns.Simulator_IsActive() then
             ns.Simulator_Stop()
         end
@@ -1146,6 +1189,38 @@ SlashCmdList["ARMSROTATIONHELPER"] = function(message)
         end
     elseif message == "sim check" then
         PrintSimulatorCheck(prefix)
+    elseif message == "record" or message == "record start" then
+        if not ns.Diagnostics_Start then
+            print(prefix .. "Diagnostic recorder is not available.")
+        elseif message == "record"
+            and ns.Diagnostics_IsActive
+            and ns.Diagnostics_IsActive() then
+            ns.Diagnostics_Stop()
+            print(prefix .. "Diagnostic recording stopped. Use /arh report.")
+        else
+            local ok, err = ns.Diagnostics_Start()
+            if ok then
+                print(prefix .. "Recording live decisions for up to 60 seconds. "
+                    .. "Use /arh record stop when finished.")
+            else
+                print(prefix .. tostring(err))
+            end
+        end
+    elseif message == "record stop" then
+        if ns.Diagnostics_Stop and ns.Diagnostics_Stop() then
+            print(prefix .. "Diagnostic recording stopped. Use /arh report.")
+        else
+            print(prefix .. "No diagnostic recording is active.")
+        end
+    elseif message == "record clear" then
+        if ns.Diagnostics_Clear then ns.Diagnostics_Clear() end
+        print(prefix .. "Diagnostic report cleared.")
+    elseif message == "report" then
+        if ns.Diagnostics_OpenReport then
+            ns.Diagnostics_OpenReport()
+        else
+            print(prefix .. "Diagnostic report window is not available.")
+        end
     elseif message == "sim list" then
         local names = ns.Simulator_GetScenarioNames
             and ns.Simulator_GetScenarioNames() or {}
@@ -1222,6 +1297,9 @@ SlashCmdList["ARMSROTATIONHELPER"] = function(message)
         print("  /arh test                 - preview the high-level display")
         print("  /arh sim [scenario]       - run deterministic rotation scenarios")
         print("  /arh sim next|stop|check  - control or verify the simulator")
+        print("  /arh record [start|stop]  - capture up to 60s of live decisions")
+        print("  /arh report               - open the copyable private report")
+        print("  /arh record clear         - erase the in-memory report")
         print("  /arh reset                - reset display position and scale")
     end
 end
