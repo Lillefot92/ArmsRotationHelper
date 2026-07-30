@@ -13,7 +13,7 @@ local BOOKTYPE_SPELL_VALUE = BOOKTYPE_SPELL or "spell"
 local RAGE_POWER_TYPE = (Enum and Enum.PowerType and Enum.PowerType.Rage) or 1
 
 ns.RAGE_POWER_TYPE = RAGE_POWER_TYPE
-ns.VERSION = "1.6.0-beta.3-dev.5"
+ns.VERSION = "1.6.0-beta.3-dev.6"
 
 -- Base-rank spell IDs are used only as stable, locale-independent
 -- identifiers. When an ability is trained, the highest known rank
@@ -916,10 +916,16 @@ local function IsOffhandSwing(cle, subevent)
     return false
 end
 
-local function SpellNameMatches(cle, key)
+local function GetCombatLogAbilityKey(cle)
     local eventSpellName = cle[13]
-    local abilityName = ns.GetAbilityName(key)
-    return eventSpellName and abilityName and eventSpellName == abilityName
+    if not eventSpellName then return nil end
+
+    for key in pairs(ns.ABILITIES) do
+        if eventSpellName == ns.GetAbilityName(key) then
+            return key
+        end
+    end
+    return nil
 end
 
 local function HandleCombatLogEvent()
@@ -941,6 +947,13 @@ local function HandleCombatLogEvent()
     end
 
     if sourceGUID == ns.state.playerGUID then
+        local abilityKey
+        if subevent == "SPELL_CAST_SUCCESS"
+            or subevent == "SPELL_DAMAGE"
+            or subevent == "SPELL_MISSED" then
+            abilityKey = GetCombatLogAbilityKey(cle)
+        end
+
         if EventIsPlayerAttack(subevent) and destGUID then
             ns.MarkEnemy(destGUID, destFlags)
         end
@@ -958,12 +971,24 @@ local function HandleCombatLogEvent()
             and not IsOffhandSwing(cle, subevent) then
             ns.RecordMainhandSwing(now, false, destGUID)
         elseif (subevent == "SPELL_DAMAGE" or subevent == "SPELL_MISSED")
-            and (SpellNameMatches(cle, "HEROIC_STRIKE") or SpellNameMatches(cle, "CLEAVE")) then
+            and (abilityKey == "HEROIC_STRIKE" or abilityKey == "CLEAVE") then
             ns.RecordMainhandSwing(now, true, destGUID)
+            if ns.Diagnostics_AddAbilityUse then
+                ns.Diagnostics_AddAbilityUse(abilityKey, "replacement")
+            end
         elseif subevent == "SPELL_CAST_SUCCESS" then
-            if SpellNameMatches(cle, "SLAM") then
+            -- Heroic Strike and Cleave are recorded only when their queued
+            -- replacement swing actually lands or misses.
+            if abilityKey
+                and abilityKey ~= "HEROIC_STRIKE"
+                and abilityKey ~= "CLEAVE"
+                and ns.Diagnostics_AddAbilityUse then
+                ns.Diagnostics_AddAbilityUse(abilityKey, "cast")
+            end
+
+            if abilityKey == "SLAM" then
                 RecordSlamCompletion(now)
-            elseif SpellNameMatches(cle, "OVERPOWER") then
+            elseif abilityKey == "OVERPOWER" then
                 ns.state.overpowerTargetGUID = nil
                 ns.state.overpowerWindowEnd = 0
             end

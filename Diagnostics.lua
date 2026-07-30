@@ -46,6 +46,11 @@ local STOP_LABELS = {
     preview = "recording-stop-for-preview",
 }
 
+local ABILITY_PHASES = {
+    cast = true,
+    replacement = true,
+}
+
 local function BooleanText(value)
     return value and "yes" or "no"
 end
@@ -205,6 +210,30 @@ function ns.Diagnostics_AddEvent(kind, numericValue)
     return true
 end
 
+function ns.Diagnostics_AddAbilityUse(abilityKey, phase)
+    if not runtime.active then return false end
+    if type(abilityKey) ~= "string"
+        or not ns.ABILITIES
+        or not ns.ABILITIES[abilityKey] then
+        return false
+    end
+    if not ABILITY_PHASES[phase] then return false end
+
+    local now = GetTime()
+    if Elapsed(now) >= RECORDING_SECONDS then
+        CompleteRecording(now)
+        return false
+    end
+
+    Append({
+        kind = "ability",
+        elapsed = Elapsed(now),
+        ability = abilityKey,
+        phase = phase,
+    })
+    return true
+end
+
 local function SnapshotSignature(snapshot, state, slamWindowOpen)
     return table.concat({
         snapshot.main and snapshot.main.ability or "WAIT",
@@ -324,9 +353,10 @@ function ns.Diagnostics_GetReport()
         SettingLine("Swing bar", BooleanText(metadata.showSwingBar)),
         SettingLine("Queue advice", BooleanText(metadata.showQueue)),
         "",
-        "Columns:",
-        "time type main/event queue/value rage hp% ttd enemies stance "
-            .. "swing slam gcd combat moving aoe reason",
+        "Row types: E=anonymous event, A=ability use, S=state sample.",
+        "State columns:",
+        "time S main queue rage hp% ttd enemies stance swing slam gcd "
+            .. "combat moving aoe reason",
     }
 
     for _, entry in ipairs(runtime.entries) do
@@ -336,6 +366,13 @@ function ns.Diagnostics_GetReport()
                 entry.elapsed,
                 entry.label,
                 entry.value and string.format("%.2f", entry.value) or "-"
+            ))
+        elseif entry.kind == "ability" then
+            table.insert(lines, string.format(
+                "%.2f A %s %s",
+                entry.elapsed,
+                entry.ability,
+                entry.phase
             ))
         else
             table.insert(lines, string.format(

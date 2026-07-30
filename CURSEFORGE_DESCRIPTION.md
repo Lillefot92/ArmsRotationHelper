@@ -22,7 +22,8 @@ Heroic Strike/Cleave next-swing queue advice.
 - Cooldown and trinket row.
 - In-game settings panel.
 - Deterministic rotation simulator, display preview, and live debug tools.
-- Privacy-safe 60-second decision recorder with a copyable tester report.
+- Privacy-safe 60-second decision recorder with anonymous actual ability uses
+  and a copyable tester report.
 
 The addon is an advisor only. It does not cast abilities, change equipment, or
 automate player input.

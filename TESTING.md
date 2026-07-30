@@ -46,9 +46,11 @@ This is the preferred test while waiting for a level-70 tester:
    seconds, or `/arh record stop` ends it early.
 5. Enter `/arh report`, press Ctrl+C, and paste the complete text into the test
    report. A short video remains helpful but is no longer required.
-6. Confirm the privacy line says the report contains no player, realm,
+6. Confirm performed abilities appear as anonymous `A` rows, such as
+   `A REND cast` or `A HEROIC_STRIKE replacement`.
+7. Confirm the privacy line says the report contains no player, realm,
    account, or target names, chat, GUIDs, or item links.
-7. Use `/arh record clear` after sharing if desired. The report is also erased
+8. Use `/arh record clear` after sharing if desired. The report is also erased
    automatically by `/reload`, logout, or closing the game.
 
 Start display preview or the simulator during an active recording only to test

@@ -80,7 +80,8 @@ available as a slash command for quick access.
 - `/arh sim next|stop|check|list` - control the simulator or run all automated
   priority checks.
 - `/arh record` or `/arh record start|stop` - capture up to 60 seconds of live
-  recommendations, Rage, target health, swing timing, and key swing events.
+  recommendations, Rage, target health, swing timing, key swing events, and
+  anonymous actual ability uses.
 - `/arh report` - open and select the diagnostic report so it can be copied
   with Ctrl+C.
 - `/arh record clear` - erase the in-memory diagnostic report.
@@ -138,10 +139,12 @@ selected automatically; press Ctrl+C and paste it into the bug report.
 The report contains only addon/client versions, level, relevant settings,
 talent/profile state, recommendation keys, Rage, target health percentage,
 estimated time-to-die, enemy count, stance number, swing/GCD timing, and
-anonymous combat events. It never reads or stores account, character, realm,
-or target names, chat text, unit GUIDs, or item links. Recordings remain only
-in memory and are lost on reload/logout. Preview and simulator data cannot be
-mixed into a live recording.
+anonymous combat and ability-use events. Ability uses appear only as safe
+internal keys such as `REND`, `THUNDER_CLAP`, or `MORTAL_STRIKE`. The recorder
+never reads or stores account, character, realm, or target names, chat text,
+unit GUIDs, or item links. Recordings remain only in memory and are lost on
+reload/logout. Preview and simulator data cannot be mixed into a live
+recording.
 
 ## Design references
 

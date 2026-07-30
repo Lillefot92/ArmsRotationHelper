@@ -13,6 +13,9 @@
   names, chat, GUIDs, and item links.
 - Added safeguards that stop recording before display preview or simulation,
   preventing synthetic decisions from contaminating a live report.
+- Added anonymous actual ability-use rows for trained Warrior abilities.
+  Heroic Strike and Cleave are recorded only when the queued replacement swing
+  is consumed, avoiding misleading queue-button events and duplicates.
 
 ### Settings panel
 
