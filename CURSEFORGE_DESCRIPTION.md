@@ -14,6 +14,10 @@ equipment, targets enemies, or automates player input.
 
 ## Features
 
+- Clean icon-first combat display with a large primary recommendation and
+  compact, unlabeled secondary icons.
+- Full ability reason, Rage, swing timing, target mode, queue, and stance
+  details available by hovering the primary icon.
 - Post-swing Slam timing with a live main-hand swing bar.
 - Mortal Strike and single-target Whirlwind priority.
 - Execute as filler below 20%, with no weapon-swap recommendation.
@@ -28,7 +32,7 @@ equipment, targets enemies, or automates player input.
   Improved Demoralizing Shout maintenance.
 - Battle Shout or Commanding Shout assignment.
 - Action-button highlighting for Blizzard bars, Bartender4, and Dominos.
-- Cooldown and trinket row.
+- Compact cooldown and trinket icons with hover names.
 - In-game settings under `Escape → Options → AddOns`, or `/arh`.
 - Built-in 34-scenario priority self-test.
 - Privacy-safe 60-second diagnostic report for useful bug reports.

@@ -1,5 +1,28 @@
 # Changelog
 
+## 1.6.0-beta.4 - 2026-08-15
+
+### Compact combat display
+
+- Rebuilt the combat display around a large, border-coded primary icon with
+  compact stance, next-swing queue, cooldown, and trinket icons.
+- Removed persistent ability names, decision reasons, stance/queue labels,
+  cooldown labels, and swing-time numbers from the combat view.
+- Moved the full recommendation reason, target mode, Rage, swing timing,
+  stance, and queue details into the primary icon tooltip.
+- Added a thin teal swing strip that turns orange during a valid Slam window.
+- Added right-click target-mode cycling directly on the primary icon.
+- Retained clear `TEST MODE` and `SIMULATION` banners so preview data cannot be
+  mistaken for a live recommendation.
+
+### Settings polish
+
+- Restyled the settings panel with a flat dark background, teal section
+  headings, cleaner spacing, and a compact live-status box.
+- Reorganized rotation, display, simulator, and diagnostic controls into
+  clearer sections without removing any existing setting or testing tool.
+- Refined the display scale slider to use smoother five-percent increments.
+
 ## 1.6.0-beta.3 - 2026-08-15
 
 ### Release-candidate rotation audit

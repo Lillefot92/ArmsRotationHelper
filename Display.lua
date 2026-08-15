@@ -1,8 +1,7 @@
 -- ============================================================
 -- Arms Rotation Helper - Display.lua
--- Main recommendation, optional stance prompt, swing timer,
--- next-swing queue advice, cooldown availability, action-bar
--- glow, test preview, deterministic simulation, and debug diagnostics.
+-- Compact icon-first recommendation display, inspired by the matching
+-- MoP Rogue helper while preserving Arms-specific swing timing.
 -- ============================================================
 
 local ADDON_NAME, ns = ...
@@ -11,8 +10,17 @@ local ADDON_NAME, ns = ...
 -- Movable root: every visual element inherits its scale.
 -- ------------------------------------------------------------
 
+local COLORS = {
+    background = { 0.018, 0.024, 0.036, 0.94 },
+    ready = { 0.17, 0.82, 0.74, 1.00 },
+    slam = { 1.00, 0.66, 0.20, 1.00 },
+    stance = { 1.00, 0.55, 0.12, 1.00 },
+    queue = { 0.25, 0.62, 1.00, 1.00 },
+    inactive = { 0.22, 0.27, 0.34, 0.95 },
+}
+
 local root = CreateFrame("Frame", "ArmsRotationHelperRoot", UIParent)
-root:SetSize(110, 185)
+root:SetSize(180, 160)
 root:SetPoint("CENTER", UIParent, "CENTER", 0, 250)
 root:SetFrameStrata("MEDIUM")
 root:SetMovable(true)
@@ -34,12 +42,27 @@ ns.rootFrame = root
 
 local function ApplyBackdrop(frame, alpha)
     frame:SetBackdrop({
-        bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
-        edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
-        edgeSize = 12,
-        insets = { left = 3, right = 3, top = 3, bottom = 3 },
+        bgFile = "Interface\\Buttons\\WHITE8X8",
+        edgeFile = "Interface\\Buttons\\WHITE8X8",
+        edgeSize = 2,
     })
-    frame:SetBackdropColor(0, 0, 0, alpha or 0.72)
+    frame:SetBackdropColor(
+        COLORS.background[1],
+        COLORS.background[2],
+        COLORS.background[3],
+        alpha or COLORS.background[4]
+    )
+    frame:SetBackdropBorderColor(
+        COLORS.ready[1],
+        COLORS.ready[2],
+        COLORS.ready[3],
+        COLORS.ready[4]
+    )
+end
+
+local function SetBorder(frame, color)
+    if not frame or not frame.SetBackdropBorderColor then return end
+    frame:SetBackdropBorderColor(color[1], color[2], color[3], color[4])
 end
 
 -- ------------------------------------------------------------
@@ -52,15 +75,25 @@ local mainFrame = CreateFrame(
     root,
     "BackdropTemplate"
 )
-mainFrame:SetSize(64, 64)
+mainFrame:SetSize(92, 92)
 mainFrame:SetPoint("TOP", root, "TOP", 0, 0)
-ApplyBackdrop(mainFrame, 0.72)
+ApplyBackdrop(mainFrame, 0.94)
 mainFrame:Hide()
 
 local mainTexture = mainFrame:CreateTexture(nil, "ARTWORK")
-mainTexture:SetPoint("TOPLEFT", 5, -5)
-mainTexture:SetPoint("BOTTOMRIGHT", -5, 5)
-mainTexture:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+mainTexture:SetPoint("TOPLEFT", 4, -4)
+mainTexture:SetPoint("BOTTOMRIGHT", -4, 4)
+mainTexture:SetTexCoord(0.07, 0.93, 0.07, 0.93)
+
+local mainCooldown = CreateFrame(
+    "Cooldown",
+    nil,
+    mainFrame,
+    "CooldownFrameTemplate"
+)
+mainCooldown:SetAllPoints(mainTexture)
+mainCooldown:SetDrawEdge(false)
+mainCooldown:SetHideCountdownNumbers(false)
 
 local testBanner = CreateFrame(
     "Frame",
@@ -68,7 +101,7 @@ local testBanner = CreateFrame(
     root,
     "BackdropTemplate"
 )
-testBanner:SetSize(190, 22)
+testBanner:SetSize(180, 20)
 testBanner:SetPoint("BOTTOM", mainFrame, "TOP", 0, 6)
 ApplyBackdrop(testBanner, 0.92)
 testBanner:SetBackdropBorderColor(1.00, 0.20, 0.16, 1)
@@ -78,31 +111,20 @@ local testBannerText = testBanner:CreateFontString(nil, "OVERLAY", "GameFontNorm
 testBannerText:SetPoint("CENTER")
 testBannerText:SetText("|cffff3b30TEST MODE|r")
 
-local captionFrame = CreateFrame(
-    "Frame",
-    "ArmsRotationHelperCaption",
-    root,
-    "BackdropTemplate"
+local unlockedText = mainFrame:CreateFontString(
+    nil,
+    "OVERLAY",
+    "GameFontNormalSmall"
 )
-captionFrame:SetSize(276, 38)
-captionFrame:SetPoint("TOP", mainFrame, "BOTTOM", 0, -1)
-ApplyBackdrop(captionFrame, 0.82)
-captionFrame:Hide()
-
-local nameText = captionFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-nameText:SetPoint("TOP", captionFrame, "TOP", 0, -4)
-nameText:SetWidth(220)
-nameText:SetJustifyH("CENTER")
-nameText:SetShadowColor(0, 0, 0, 1)
-nameText:SetShadowOffset(1, -1)
-
-local reasonText = captionFrame:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-reasonText:SetPoint("TOP", nameText, "BOTTOM", 0, -1)
-reasonText:SetWidth(260)
-reasonText:SetJustifyH("CENTER")
-reasonText:SetTextColor(0.88, 0.88, 0.88, 1)
-reasonText:SetShadowColor(0, 0, 0, 1)
-reasonText:SetShadowOffset(1, -1)
+unlockedText:SetPoint("BOTTOM", mainFrame, "TOP", 0, 4)
+unlockedText:SetText("DRAG")
+unlockedText:SetTextColor(
+    COLORS.stance[1],
+    COLORS.stance[2],
+    COLORS.stance[3],
+    COLORS.stance[4]
+)
+unlockedText:Hide()
 
 -- ------------------------------------------------------------
 -- Secondary stance prompt
@@ -114,19 +136,16 @@ local stanceFrame = CreateFrame(
     root,
     "BackdropTemplate"
 )
-stanceFrame:SetSize(32, 32)
-stanceFrame:SetPoint("RIGHT", mainFrame, "LEFT", -10, 0)
-ApplyBackdrop(stanceFrame, 0.68)
+stanceFrame:SetSize(40, 40)
+stanceFrame:SetPoint("RIGHT", mainFrame, "LEFT", -8, 0)
+ApplyBackdrop(stanceFrame, 0.94)
+SetBorder(stanceFrame, COLORS.stance)
 stanceFrame:Hide()
 
 local stanceTexture = stanceFrame:CreateTexture(nil, "ARTWORK")
 stanceTexture:SetPoint("TOPLEFT", 3, -3)
 stanceTexture:SetPoint("BOTTOMRIGHT", -3, 3)
-stanceTexture:SetTexCoord(0.08, 0.92, 0.08, 0.92)
-
-local stanceText = stanceFrame:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-stanceText:SetPoint("TOP", stanceFrame, "BOTTOM", 0, -1)
-stanceText:SetText("STANCE")
+stanceTexture:SetTexCoord(0.07, 0.93, 0.07, 0.93)
 
 -- ------------------------------------------------------------
 -- Next-swing Heroic Strike / Cleave queue prompt
@@ -138,19 +157,16 @@ local queueFrame = CreateFrame(
     root,
     "BackdropTemplate"
 )
-queueFrame:SetSize(32, 32)
-queueFrame:SetPoint("LEFT", mainFrame, "RIGHT", 10, 0)
-ApplyBackdrop(queueFrame, 0.68)
+queueFrame:SetSize(40, 40)
+queueFrame:SetPoint("LEFT", mainFrame, "RIGHT", 8, 0)
+ApplyBackdrop(queueFrame, 0.94)
+SetBorder(queueFrame, COLORS.queue)
 queueFrame:Hide()
 
 local queueTexture = queueFrame:CreateTexture(nil, "ARTWORK")
 queueTexture:SetPoint("TOPLEFT", 3, -3)
 queueTexture:SetPoint("BOTTOMRIGHT", -3, 3)
-queueTexture:SetTexCoord(0.08, 0.92, 0.08, 0.92)
-
-local queueText = queueFrame:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-queueText:SetPoint("TOP", queueFrame, "BOTTOM", 0, -1)
-queueText:SetText("QUEUE")
+queueTexture:SetTexCoord(0.07, 0.93, 0.07, 0.93)
 
 -- ------------------------------------------------------------
 -- Main-hand swing bar
@@ -162,24 +178,36 @@ local swingBar = CreateFrame(
     root,
     "BackdropTemplate"
 )
-swingBar:SetSize(106, 14)
-swingBar:SetPoint("TOP", mainFrame, "BOTTOM", 0, -42)
+swingBar:SetSize(92, 8)
+swingBar:SetPoint("TOP", mainFrame, "BOTTOM", 0, -6)
 swingBar:SetBackdrop({
     bgFile = "Interface\\Buttons\\WHITE8X8",
-    edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
-    edgeSize = 8,
-    insets = { left = 2, right = 2, top = 2, bottom = 2 },
+    edgeFile = "Interface\\Buttons\\WHITE8X8",
+    edgeSize = 1,
 })
-swingBar:SetBackdropColor(0.04, 0.04, 0.04, 0.85)
+swingBar:SetBackdropColor(
+    COLORS.background[1],
+    COLORS.background[2],
+    COLORS.background[3],
+    0.94
+)
+swingBar:SetBackdropBorderColor(
+    COLORS.inactive[1],
+    COLORS.inactive[2],
+    COLORS.inactive[3],
+    COLORS.inactive[4]
+)
 swingBar:Hide()
 
 local swingFill = swingBar:CreateTexture(nil, "ARTWORK")
-swingFill:SetPoint("LEFT", swingBar, "LEFT", 3, 0)
-swingFill:SetHeight(8)
-swingFill:SetColorTexture(0.20, 0.55, 1.00, 0.90)
-
-local swingText = swingBar:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-swingText:SetPoint("CENTER", swingBar, "CENTER", 0, 0)
+swingFill:SetPoint("LEFT", swingBar, "LEFT", 1, 0)
+swingFill:SetHeight(6)
+swingFill:SetColorTexture(
+    COLORS.ready[1],
+    COLORS.ready[2],
+    COLORS.ready[3],
+    0.95
+)
 
 -- ------------------------------------------------------------
 -- Cooldown availability row
@@ -187,37 +215,45 @@ swingText:SetPoint("CENTER", swingBar, "CENTER", 0, 0)
 
 local cooldownRow = CreateFrame("Frame", "ArmsRotationHelperCooldownRow", root)
 cooldownRow:SetSize(190, 45)
-cooldownRow:SetPoint("TOP", swingBar, "BOTTOM", 0, -10)
+cooldownRow:SetPoint("TOP", swingBar, "BOTTOM", 0, -8)
 cooldownRow:Hide()
 
-local COOLDOWN_ICON_SIZE = 32
-local COOLDOWN_ICON_GAP = 10
+local COOLDOWN_ICON_SIZE = 36
+local COOLDOWN_ICON_GAP = 6
 
-local function CreateCooldownIcon(parent, labelText)
-    local frame = CreateFrame("Frame", nil, parent)
+local function CreateCooldownIcon(parent)
+    local frame = CreateFrame("Frame", nil, parent, "BackdropTemplate")
     frame:SetSize(COOLDOWN_ICON_SIZE, COOLDOWN_ICON_SIZE)
+    ApplyBackdrop(frame, 0.94)
     frame:Hide()
 
     local texture = frame:CreateTexture(nil, "ARTWORK")
-    texture:SetAllPoints()
-    texture:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+    texture:SetPoint("TOPLEFT", 3, -3)
+    texture:SetPoint("BOTTOMRIGHT", -3, 3)
+    texture:SetTexCoord(0.07, 0.93, 0.07, 0.93)
 
     local cooldown = CreateFrame("Cooldown", nil, frame, "CooldownFrameTemplate")
-    cooldown:SetAllPoints()
+    cooldown:SetAllPoints(texture)
+    cooldown:SetDrawEdge(false)
+    cooldown:SetHideCountdownNumbers(false)
 
-    local label = frame:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-    label:SetPoint("TOP", frame, "BOTTOM", 0, -1)
-    label:SetWidth(90)
-    label:SetJustifyH("CENTER")
-    label:SetText(labelText or "")
-
-    return {
+    local entry = {
         frame = frame,
         texture = texture,
         cooldown = cooldown,
-        label = label,
+        name = nil,
         cachedIcon = nil,
     }
+
+    frame:EnableMouse(true)
+    frame:SetScript("OnEnter", function(self)
+        if not entry.name then return end
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText(entry.name, 1, 1, 1)
+        GameTooltip:Show()
+    end)
+    frame:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    return entry
 end
 
 local deathWishIcon = CreateCooldownIcon(cooldownRow)
@@ -256,11 +292,12 @@ local function UpdateAbilityCooldownIcon(entry, key)
         entry.texture:SetTexture(icon)
         entry.cachedIcon = icon
     end
-    entry.label:SetText(ns.GetAbilityName(key) or key)
+    entry.name = ns.GetAbilityName(key) or key
     entry.cooldown:SetCooldown(start or 0, duration or 0)
 
     local wrongStance = ns.GetPreferredStanceForAbility(key) ~= nil
     SetReadyColor(entry.texture, ready, wrongStance)
+    SetBorder(entry.frame, ready and COLORS.ready or COLORS.inactive)
 end
 
 local function UpdateTrinketIcon(entry, slot)
@@ -285,11 +322,12 @@ local function UpdateTrinketIcon(entry, slot)
         entry.texture:SetTexture(cached.icon)
         entry.cachedIcon = cached.icon
     end
-    entry.label:SetText(cached.name)
+    entry.name = cached.name
 
     local ready, start, duration = ns.GetItemCooldownInfo(slot)
     entry.cooldown:SetCooldown(start or 0, duration or 0)
     SetReadyColor(entry.texture, ready, false)
+    SetBorder(entry.frame, ready and COLORS.ready or COLORS.inactive)
     return true
 end
 
@@ -350,6 +388,124 @@ local function UpdateCooldownRow(snapshot)
     for _, frame in ipairs(active) do frame:Show() end
     LayoutCooldownRow(active)
 end
+
+-- Persistent text is intentionally absent from the combat display. Rich
+-- context remains available on demand through the primary icon tooltip.
+local lastDisplaySnapshot
+local tooltipVisible = false
+local tooltipLastRefresh = 0
+
+local function TooltipIsOwned(owner)
+    if not owner or not GameTooltip then return false end
+    if GameTooltip.IsOwned then return GameTooltip:IsOwned(owner) end
+    if GameTooltip.GetOwner then return GameTooltip:GetOwner() == owner end
+    return false
+end
+
+local function DisplayModeLabel(snapshot)
+    local requested = ns.db and ns.db.mode or "auto"
+    if requested == "auto" then
+        return snapshot and snapshot.aoeActive and "Auto / AoE" or "Auto / Single"
+    end
+    return "Forced " .. requested
+end
+
+local function ShowMainTooltip()
+    local snapshot = lastDisplaySnapshot
+    local decision = snapshot and snapshot.main
+    if not decision then return end
+
+    GameTooltip:SetOwner(mainFrame, "ANCHOR_TOP")
+    if GameTooltip.ClearLines then GameTooltip:ClearLines() end
+    GameTooltip:AddLine("Arms Rotation Helper", 0.20, 1.00, 0.88)
+    GameTooltip:AddLine(
+        ns.GetAbilityName(decision.ability) or decision.ability,
+        1,
+        1,
+        1
+    )
+    if decision.reason and decision.reason ~= "" then
+        GameTooltip:AddLine(decision.reason, 0.72, 0.78, 0.86, true)
+    end
+    GameTooltip:AddLine(" ")
+    GameTooltip:AddDoubleLine(
+        "Mode / targets",
+        DisplayModeLabel(snapshot) .. " / " .. tostring(snapshot.enemyCount or 1),
+        0.65,
+        0.70,
+        0.78,
+        1,
+        1,
+        1
+    )
+    GameTooltip:AddDoubleLine(
+        "Rage / next swing",
+        tostring(ns.state.rage or 0) .. " / "
+            .. string.format("%.1fs", ns.GetSwingRemaining()),
+        0.65,
+        0.70,
+        0.78,
+        1,
+        1,
+        1
+    )
+    if snapshot.queue then
+        GameTooltip:AddDoubleLine(
+            "Next-swing queue",
+            ns.GetAbilityName(snapshot.queue.ability) or snapshot.queue.ability,
+            0.65,
+            0.70,
+            0.78,
+            COLORS.queue[1],
+            COLORS.queue[2],
+            COLORS.queue[3]
+        )
+    end
+    if decision.stance then
+        local stanceKey = ns.GetStanceKey(decision.stance)
+        GameTooltip:AddDoubleLine(
+            "Required stance",
+            stanceKey and (ns.GetAbilityName(stanceKey) or stanceKey) or "Change stance",
+            0.65,
+            0.70,
+            0.78,
+            COLORS.stance[1],
+            COLORS.stance[2],
+            COLORS.stance[3]
+        )
+    end
+    GameTooltip:AddLine(" ")
+    GameTooltip:AddLine("Right-click: cycle target mode", 0.82, 0.86, 0.92)
+    GameTooltip:AddLine("/arh opens settings", 0.62, 0.68, 0.76)
+    GameTooltip:Show()
+    tooltipLastRefresh = GetTime()
+end
+
+mainFrame:EnableMouse(true)
+mainFrame:RegisterForDrag("LeftButton")
+mainFrame:SetScript("OnDragStart", function()
+    if ns.db and not ns.db.locked then root:StartMoving() end
+end)
+mainFrame:SetScript("OnDragStop", function()
+    root:StopMovingOrSizing()
+    local point, _, _, x, y = root:GetPoint()
+    ns.db.point, ns.db.x, ns.db.y = point, x, y
+end)
+mainFrame:SetScript("OnMouseUp", function(_, button)
+    if button ~= "RightButton" or not ns.db then return end
+    local nextMode = { auto = "single", single = "aoe", aoe = "auto" }
+    ns.db.mode = nextMode[ns.db.mode] or "auto"
+    if ns.Settings_Refresh then ns.Settings_Refresh() end
+    if tooltipVisible then ShowMainTooltip() end
+end)
+mainFrame:SetScript("OnEnter", function()
+    tooltipVisible = true
+    ShowMainTooltip()
+end)
+mainFrame:SetScript("OnLeave", function()
+    tooltipVisible = false
+    if TooltipIsOwned(mainFrame) then GameTooltip:Hide() end
+end)
 
 -- ------------------------------------------------------------
 -- Action-bar lookup and non-secure glow
@@ -719,15 +875,34 @@ local function UpdateMainIcon(snapshot)
     local decision = snapshot and snapshot.main
     if not ns.db.showIcon or not decision then
         mainFrame:Hide()
-        captionFrame:Hide()
+        mainCooldown:SetCooldown(0, 0)
+        if TooltipIsOwned(mainFrame) then GameTooltip:Hide() end
+        tooltipVisible = false
         return
     end
 
+    lastDisplaySnapshot = snapshot
     mainTexture:SetTexture(ns.GetAbilityIcon(decision.ability))
-    nameText:SetText(ns.GetAbilityName(decision.ability) or decision.ability)
-    reasonText:SetText(decision.reason or "")
+    local identifier = ns.GetAbilityIdentifier(decision.ability)
+    local start, duration = ns.GetCooldown(identifier)
+    mainCooldown:SetCooldown(start or 0, duration or 0)
+
+    if not ns.db.locked then
+        SetBorder(mainFrame, COLORS.stance)
+    elseif decision.ability == "SLAM" then
+        SetBorder(mainFrame, COLORS.slam)
+    else
+        SetBorder(mainFrame, COLORS.ready)
+    end
     mainFrame:Show()
-    captionFrame:Show()
+
+    if tooltipVisible and GetTime() - tooltipLastRefresh >= 0.20 then
+        if TooltipIsOwned(mainFrame) then
+            ShowMainTooltip()
+        else
+            tooltipVisible = false
+        end
+    end
 end
 
 local function UpdateTestBanner(snapshot)
@@ -764,7 +939,6 @@ local function UpdateStanceIcon(snapshot)
     end
 
     stanceTexture:SetTexture(ns.GetAbilityIcon(stanceKey))
-    stanceText:SetText("STANCE")
     stanceFrame:Show()
 end
 
@@ -776,7 +950,6 @@ local function UpdateQueueIcon(snapshot)
     end
 
     queueTexture:SetTexture(ns.GetAbilityIcon(queue.ability))
-    queueText:SetText("QUEUE")
     queueFrame:Show()
 end
 
@@ -794,22 +967,22 @@ local function UpdateSwingBar(snapshot)
     end
 
     local progress = progressOverride or ns.GetSwingProgress()
-    local remaining
-    if snapshot and snapshot.simulation then
-        remaining = snapshot.simulation.swingRemaining
-    elseif progressOverride then
-        remaining = (1 - progress) * 3.6
-    else
-        remaining = ns.GetSwingRemaining()
-    end
-    swingFill:SetWidth(math.max(1, 100 * progress))
+    swingFill:SetWidth(math.max(1, 90 * progress))
 
     if snapshot and snapshot.main and snapshot.main.ability == "SLAM" then
-        swingFill:SetColorTexture(1.00, 0.72, 0.08, 0.95)
-        swingText:SetText("SLAM")
+        swingFill:SetColorTexture(
+            COLORS.slam[1],
+            COLORS.slam[2],
+            COLORS.slam[3],
+            0.95
+        )
     else
-        swingFill:SetColorTexture(0.20, 0.55, 1.00, 0.90)
-        swingText:SetText(string.format("%.1f", remaining))
+        swingFill:SetColorTexture(
+            COLORS.ready[1],
+            COLORS.ready[2],
+            COLORS.ready[3],
+            0.95
+        )
     end
     swingBar:Show()
 end
@@ -843,9 +1016,21 @@ end
 function ns.Display_ApplySettings()
     if not ns.db then return end
     root:ClearAllPoints()
-    root:SetPoint(ns.db.point, UIParent, ns.db.point, ns.db.x, ns.db.y)
-    root:SetScale(ns.db.scale)
+    root:SetPoint(
+        ns.db.point or "CENTER",
+        UIParent,
+        ns.db.point or "CENTER",
+        ns.db.x or 0,
+        ns.db.y or 250
+    )
+    root:SetScale(ns.db.scale or 1)
     root:EnableMouse(not ns.db.locked)
+    if ns.db.locked then
+        unlockedText:Hide()
+    else
+        unlockedText:Show()
+        SetBorder(mainFrame, COLORS.stance)
+    end
 end
 
 -- ------------------------------------------------------------

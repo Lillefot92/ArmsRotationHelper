@@ -10,9 +10,14 @@ and level-70 raid conditions.
 2. Install the beta and start the Anniversary client.
 3. Run `/console scriptErrors 1`, then `/reload`.
 4. Run `/arh test`. Confirm the main, stance, queue, swing, and cooldown visuals
-   appear and move together after `/arh unlock`. A red `TEST MODE` banner must
-   remain visible for the complete preview.
-5. Turn test mode off with `/arh test`.
+   appear and move together after `/arh unlock`. The combat view should have no
+   permanent ability name, reason, stance/queue label, cooldown name, or swing
+   number. A red `TEST MODE` banner must remain visible for the complete
+   preview.
+5. Hover the primary icon and confirm its tooltip shows the recommended ability
+   and reason, mode/targets, Rage/swing timing, queue advice, and required
+   stance. Right-click it and confirm the target mode cycles.
+6. Turn test mode off with `/arh test`.
 
 ## Settings panel checks
 
@@ -89,9 +94,9 @@ Individual groups can be repeated with:
   swinging and building Rage.
 - After at least one main-hand attack is observed, the swing bar should restart
   on every ordinary white swing.
-- The swing bar must continue showing remaining swing time at this level; it
-  must not display `SLAM` when Slam or the complete Improved Slam profile is
-  unavailable.
+- The swing strip must continue showing main-hand swing progress at this level;
+  it must stay teal rather than turning orange when Slam or the complete
+  Improved Slam profile is unavailable.
 - Heroic Strike should only appear in the small queue icon at high Rage, not as
   an ordinary low-Rage main recommendation.
 - `/arh stance` should cleanly hide or show stance prompts.

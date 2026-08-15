@@ -9,12 +9,12 @@ rotation. It only recommends actions; it never casts spells or automates input.
 
 ## What it shows
 
-- A primary ability recommendation.
-- A main-hand swing bar and short post-swing Slam window.
-- A separate Heroic Strike or Cleave next-swing queue suggestion.
-- Optional stance advice.
+- A large, clean primary ability icon with full details available on hover.
+- A thin main-hand swing strip that turns orange during the post-swing Slam
+  window.
+- Compact, unlabeled Heroic Strike/Cleave queue and optional stance icons.
 - Action-bar highlighting for Blizzard bars, Bartender4, and Dominos.
-- A small cooldown row for Death Wish, Recklessness, and equipped trinkets.
+- Compact cooldown icons for Death Wish, Recklessness, and equipped trinkets.
 - Automatic single-target/AoE selection, with manual overrides.
 - A deterministic rotation simulator for validating priorities without a
   level-70 character or live combat.
@@ -104,6 +104,10 @@ stance, Sunder, and talented Demoralizing Shout options, all display toggles,
 scale and locking controls, display preview, named simulator scenarios, manual
 simulator steps, the complete 34-check rotation test, and live
 record/start/stop/report controls.
+
+The live combat view intentionally contains no permanent ability names or
+decision text. Hover the primary icon for the full reason and current combat
+details, or right-click it to cycle Automatic, Single, and AoE target modes.
 
 ## Installation
 

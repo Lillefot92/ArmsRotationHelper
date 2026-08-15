@@ -6,8 +6,36 @@
 
 local ADDON_NAME, ns = ...
 
-local PANEL_WIDTH = 620
-local PANEL_HEIGHT = 660
+local PANEL_WIDTH = 720
+local PANEL_HEIGHT = 730
+
+local COLORS = {
+    teal = { 0.20, 0.90, 0.80, 1.00 },
+    muted = { 0.63, 0.69, 0.77, 1.00 },
+    panel = { 0.035, 0.045, 0.065, 0.92 },
+    border = { 0.16, 0.34, 0.39, 0.95 },
+}
+
+local function ApplyBox(frame, alpha)
+    if not frame.SetBackdrop then return end
+    frame:SetBackdrop({
+        bgFile = "Interface\\Buttons\\WHITE8X8",
+        edgeFile = "Interface\\Buttons\\WHITE8X8",
+        edgeSize = 1,
+    })
+    frame:SetBackdropColor(
+        COLORS.panel[1],
+        COLORS.panel[2],
+        COLORS.panel[3],
+        alpha or COLORS.panel[4]
+    )
+    frame:SetBackdropBorderColor(
+        COLORS.border[1],
+        COLORS.border[2],
+        COLORS.border[3],
+        COLORS.border[4]
+    )
+end
 
 local panel = CreateFrame(
     "Frame",
@@ -22,14 +50,7 @@ panel:SetClampedToScreen(true)
 panel:SetMovable(true)
 panel:EnableMouse(true)
 panel:RegisterForDrag("LeftButton")
-panel:SetBackdrop({
-    bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
-    edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
-    tile = true,
-    tileSize = 32,
-    edgeSize = 32,
-    insets = { left = 10, right = 10, top = 10, bottom = 10 },
-})
+ApplyBox(panel, 0.94)
 panel:Hide()
 
 panel:SetScript("OnDragStart", function(self) self:StartMoving() end)
@@ -43,41 +64,78 @@ local closeButton = CreateFrame(
 )
 closeButton:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -4, -4)
 
-local title = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-title:SetPoint("TOPLEFT", panel, "TOPLEFT", 24, -22)
+local title = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalHuge")
+title:SetPoint("TOPLEFT", panel, "TOPLEFT", 24, -20)
 title:SetText("Arms Rotation Helper")
+title:SetTextColor(COLORS.teal[1], COLORS.teal[2], COLORS.teal[3], COLORS.teal[4])
 
 local versionText = panel:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-versionText:SetPoint("LEFT", title, "RIGHT", 10, -1)
-versionText:SetText(ns.VERSION)
+versionText:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -42, -28)
+versionText:SetText("Version " .. ns.VERSION)
+versionText:SetTextColor(
+    COLORS.muted[1],
+    COLORS.muted[2],
+    COLORS.muted[3],
+    COLORS.muted[4]
+)
 
-local subtitle = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-subtitle:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -7)
+local subtitle = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+subtitle:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 2, -7)
 subtitle:SetWidth(PANEL_WIDTH - 48)
 subtitle:SetJustifyH("LEFT")
-subtitle:SetText(
-    "Configure the advisor here. Changes apply immediately and all existing slash commands still work."
+subtitle:SetText("Two-handed Arms PvE advisor - settings save immediately")
+subtitle:SetTextColor(
+    COLORS.muted[1],
+    COLORS.muted[2],
+    COLORS.muted[3],
+    COLORS.muted[4]
+)
+
+local statusBox = CreateFrame("Frame", nil, panel, "BackdropTemplate")
+statusBox:SetPoint("TOPLEFT", panel, "TOPLEFT", 24, -82)
+statusBox:SetSize(PANEL_WIDTH - 48, 66)
+ApplyBox(statusBox, 0.78)
+
+local statusText = statusBox:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+statusText:SetPoint("TOPLEFT", statusBox, "TOPLEFT", 12, -11)
+statusText:SetWidth(PANEL_WIDTH - 72)
+statusText:SetJustifyH("LEFT")
+
+local trackingText = statusBox:CreateFontString(
+    nil,
+    "OVERLAY",
+    "GameFontHighlightSmall"
+)
+trackingText:SetPoint("TOPLEFT", statusBox, "TOPLEFT", 12, -36)
+trackingText:SetWidth(PANEL_WIDTH - 72)
+trackingText:SetJustifyH("LEFT")
+trackingText:SetTextColor(
+    COLORS.muted[1],
+    COLORS.muted[2],
+    COLORS.muted[3],
+    COLORS.muted[4]
 )
 
 local function CreateSectionHeader(text, x, y, width)
-    local header = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    local header = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
     header:SetPoint("TOPLEFT", panel, "TOPLEFT", x, y)
     header:SetText(text)
+    header:SetTextColor(COLORS.teal[1], COLORS.teal[2], COLORS.teal[3], COLORS.teal[4])
 
     local line = panel:CreateTexture(nil, "ARTWORK")
-    line:SetColorTexture(0.35, 0.55, 0.90, 0.55)
+    line:SetColorTexture(COLORS.border[1], COLORS.border[2], COLORS.border[3], 0.75)
     line:SetPoint("TOPLEFT", header, "BOTTOMLEFT", 0, -4)
     line:SetSize(width, 1)
     return header
 end
 
-local rotationHeader = CreateSectionHeader("Rotation", 24, -78, 270)
-local displayHeader = CreateSectionHeader("Display", 326, -78, 270)
+local rotationHeader = CreateSectionHeader("Rotation behavior", 24, -166, 320)
+local displayHeader = CreateSectionHeader("Display", 376, -166, 320)
 local toolsHeader = CreateSectionHeader(
-    "Preview, simulator, and diagnostics",
+    "Testing and feedback",
     24,
-    -382,
-    572
+    -488,
+    672
 )
 
 local controls = {}
@@ -163,7 +221,7 @@ local modeDropdown = CreateDropdown(
     "ArmsRotationHelperModeDropdown",
     "Target mode",
     28,
-    -112,
+    -204,
     220,
     {
         { value = "auto", label = "Automatic target count" },
@@ -182,7 +240,7 @@ local shoutDropdown = CreateDropdown(
     "ArmsRotationHelperShoutDropdown",
     "Assigned shout",
     28,
-    -177,
+    -269,
     220,
     {
         { value = "battle", label = "Battle Shout" },
@@ -201,7 +259,7 @@ CreateCheckbox(
     "Show stance advice",
     "Shows a separate stance icon only when the recommended ability needs a different stance.",
     24,
-    -244,
+    -334,
     "stanceAdvice"
 )
 
@@ -210,7 +268,7 @@ CreateCheckbox(
     "Maintain five Sunders",
     "Opt into maintaining five Sunder Armor stacks on durable targets. Leave this off when another player handles armor reduction.",
     24,
-    -276,
+    -366,
     "maintainSunder"
 )
 
@@ -218,8 +276,8 @@ CreateCheckbox(
     "ArmsRotationHelperLockedCheckbox",
     "Lock recommendation display",
     "When unlocked, drag the main recommendation display with the left mouse button.",
-    24,
-    -308,
+    372,
+    -366,
     "locked"
 )
 
@@ -228,25 +286,25 @@ local demoShoutCheckbox = CreateCheckbox(
     "Maintain Improved Demo Shout",
     "Available only with at least one point in Improved Demoralizing Shout. Refreshes your talented debuff as a filler without replacing Slam, Mortal Strike, Whirlwind, or Execute.",
     24,
-    -340,
+    -398,
     "maintainDemoShout"
 )
 
 CreateCheckbox(
     "ArmsRotationHelperMainIconCheckbox",
     "Main recommendation icon",
-    "Shows the primary ability recommendation and its reason.",
-    322,
-    -112,
+    "Shows the clean primary recommendation icon. Hover it for the ability name and reason.",
+    372,
+    -204,
     "showIcon"
 )
 
 CreateCheckbox(
     "ArmsRotationHelperSwingCheckbox",
     "Main-hand swing bar",
-    "Shows the predicted main-hand swing and highlights a valid post-swing Slam.",
-    322,
-    -144,
+    "Shows the compact main-hand swing progress bar and changes color for a valid post-swing Slam.",
+    372,
+    -236,
     "showSwingBar"
 )
 
@@ -254,8 +312,8 @@ CreateCheckbox(
     "ArmsRotationHelperQueueCheckbox",
     "Heroic Strike/Cleave queue",
     "Shows high-Rage next-swing advice separately from the primary global-cooldown recommendation.",
-    322,
-    -176,
+    372,
+    -268,
     "showQueue"
 )
 
@@ -263,17 +321,17 @@ CreateCheckbox(
     "ArmsRotationHelperGlowCheckbox",
     "Action-bar glow",
     "Highlights a matching visible spell or spell macro on Blizzard, Bartender4, or Dominos bars.",
-    322,
-    -208,
+    372,
+    -300,
     "showGlow"
 )
 
 CreateCheckbox(
     "ArmsRotationHelperCooldownsCheckbox",
-    "Cooldown and trinket row",
-    "Shows Death Wish, Recklessness, and usable equipped trinkets.",
-    322,
-    -240,
+    "Compact cooldown icons",
+    "Shows Death Wish, Recklessness, and usable equipped trinkets without permanent text labels.",
+    372,
+    -332,
     "showCooldowns"
 )
 
@@ -281,13 +339,13 @@ CreateCheckbox(
     "ArmsRotationHelperDebugCheckbox",
     "Diagnostic panel",
     "Shows the live combat values used by the recommendation engine. Useful for testing and bug reports.",
-    322,
-    -272,
+    372,
+    -398,
     "debugMode"
 )
 
 local scaleLabel = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-scaleLabel:SetPoint("TOPLEFT", panel, "TOPLEFT", 332, -321)
+scaleLabel:SetPoint("TOPLEFT", panel, "TOPLEFT", 382, -421)
 scaleLabel:SetText("Display scale")
 
 local scaleSlider = CreateFrame(
@@ -297,16 +355,17 @@ local scaleSlider = CreateFrame(
     "OptionsSliderTemplate"
 )
 scaleSlider:SetPoint("TOPLEFT", scaleLabel, "BOTTOMLEFT", 8, -12)
-scaleSlider:SetWidth(230)
+scaleSlider:SetWidth(220)
 scaleSlider:SetMinMaxValues(0.3, 3.0)
-scaleSlider:SetValueStep(0.1)
+scaleSlider:SetValueStep(0.05)
+if scaleSlider.SetObeyStepOnDrag then scaleSlider:SetObeyStepOnDrag(true) end
 
 _G[scaleSlider:GetName() .. "Low"]:SetText("0.3")
 _G[scaleSlider:GetName() .. "High"]:SetText("3.0")
 _G[scaleSlider:GetName() .. "Text"]:SetText("100%")
 
 scaleSlider:SetScript("OnValueChanged", function(self, value)
-    value = math.floor(value * 10 + 0.5) / 10
+    value = math.floor(value * 20 + 0.5) / 20
     _G[self:GetName() .. "Text"]:SetText(
         string.format("%d%%", math.floor(value * 100 + 0.5))
     )
@@ -329,7 +388,7 @@ local scenarioDropdown = CreateDropdown(
     "ArmsRotationHelperScenarioDropdown",
     "Scenario",
     28,
-    -416,
+    -526,
     220,
     {
         { value = "all", label = "Complete suite" },
@@ -346,16 +405,10 @@ local scenarioDropdown = CreateDropdown(
     function(value) selectedScenario = value end
 )
 
-local statusText = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-statusText:SetPoint("BOTTOMLEFT", panel, "BOTTOMLEFT", 24, 22)
-statusText:SetWidth(PANEL_WIDTH - 48)
-statusText:SetJustifyH("LEFT")
-statusText:SetTextColor(0.75, 0.82, 0.95, 1)
-
 local statusOverride
 
 local previewButton
-previewButton = CreateButton("Start display preview", 180, 326, -416, function()
+previewButton = CreateButton("Start display preview", 180, 376, -526, function()
     if not ns.db then return end
     if ns.Simulator_IsActive and ns.Simulator_IsActive() then
         ns.Simulator_Stop()
@@ -370,8 +423,8 @@ end)
 local startSimulatorButton = CreateButton(
     "Start selected scenario",
     180,
-    326,
-    -449,
+    376,
+    -559,
     function()
         if not ns.Simulator_Start then return end
         local ok, err = ns.Simulator_Start(selectedScenario)
@@ -387,8 +440,8 @@ local startSimulatorButton = CreateButton(
 local nextSimulatorButton = CreateButton(
     "Next step",
     87,
-    326,
-    -482,
+    376,
+    -592,
     function()
         if ns.Simulator_Next then ns.Simulator_Next() end
         statusOverride = nil
@@ -399,8 +452,8 @@ local nextSimulatorButton = CreateButton(
 local stopSimulatorButton = CreateButton(
     "Stop",
     87,
-    419,
-    -482,
+    469,
+    -592,
     function()
         if ns.Simulator_Stop then ns.Simulator_Stop() end
         statusOverride = nil
@@ -411,8 +464,8 @@ local stopSimulatorButton = CreateButton(
 local checkSimulatorButton = CreateButton(
     "Run priority checks",
     180,
-    326,
-    -515,
+    376,
+    -625,
     function()
         if not ns.Simulator_RunSelfCheck then return end
         local passed, total, failures = ns.Simulator_RunSelfCheck()
@@ -435,7 +488,7 @@ recordButton = CreateButton(
     "Start 60-second recording",
     220,
     28,
-    -482,
+    -592,
     function()
         if not ns.Diagnostics_Start then return end
         if ns.Diagnostics_IsActive and ns.Diagnostics_IsActive() then
@@ -457,7 +510,7 @@ local openReportButton = CreateButton(
     "Open report",
     106,
     28,
-    -515,
+    -625,
     function()
         if ns.Diagnostics_OpenReport then ns.Diagnostics_OpenReport() end
     end
@@ -467,7 +520,7 @@ local clearReportButton = CreateButton(
     "Clear report",
     106,
     142,
-    -515,
+    -625,
     function()
         if ns.Diagnostics_Clear then ns.Diagnostics_Clear() end
         statusOverride = "The in-memory diagnostic report was cleared."
@@ -479,7 +532,7 @@ local resetButton = CreateButton(
     "Reset position and scale",
     220,
     28,
-    -548,
+    -658,
     function()
         if not ns.db then return end
         ns.db.point, ns.db.x, ns.db.y, ns.db.scale =
@@ -491,12 +544,12 @@ local resetButton = CreateButton(
 )
 
 local helpText = panel:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-helpText:SetPoint("TOPLEFT", panel, "TOPLEFT", 28, -590)
+helpText:SetPoint("TOPLEFT", panel, "TOPLEFT", 28, -696)
 helpText:SetWidth(PANEL_WIDTH - 56)
 helpText:SetJustifyH("LEFT")
 helpText:SetText(
-    "Tip: the 60-second report is stored only in memory and never includes "
-        .. "character, realm, or target names. Open it and press Ctrl+C to copy."
+    "Hover over the main icon for live details; right-click it to cycle target mode. "
+        .. "Diagnostic reports stay in memory and never include player, realm, or target names."
 )
 
 local function UpdateDropdown(dropdown)
@@ -569,6 +622,23 @@ function ns.Settings_Refresh()
         diagnosticStatus ~= nil
             and (diagnosticStatus.hasReport or diagnosticStatus.active)
     )
+
+    local playerLevel = UnitLevel and UnitLevel("player") or 0
+    local modeLabel = ns.db.mode == "aoe" and "AoE"
+        or ns.db.mode == "single" and "Single"
+        or "Automatic"
+    local shoutLabel = ns.db.assignedShout == "commanding"
+        and "Commanding Shout" or "Battle Shout"
+    trackingText:SetText(string.format(
+        "Level %d Warrior  |  Rage %d/%d  |  %d tracked target%s  |  %s  |  %s",
+        playerLevel,
+        ns.state.rage or 0,
+        ns.state.maxRage or 100,
+        ns.state.enemyCount or 0,
+        (ns.state.enemyCount or 0) == 1 and "" or "s",
+        modeLabel,
+        shoutLabel
+    ))
 
     if simulatorActive and ns.Simulator_GetStatus then
         local status = ns.Simulator_GetStatus()
