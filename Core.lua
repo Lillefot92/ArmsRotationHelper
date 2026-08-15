@@ -13,7 +13,7 @@ local BOOKTYPE_SPELL_VALUE = BOOKTYPE_SPELL or "spell"
 local RAGE_POWER_TYPE = (Enum and Enum.PowerType and Enum.PowerType.Rage) or 1
 
 ns.RAGE_POWER_TYPE = RAGE_POWER_TYPE
-ns.VERSION = "1.6.0-beta.3-dev.6"
+ns.VERSION = "1.6.0-beta.3"
 
 -- Base-rank spell IDs are used only as stable, locale-independent
 -- identifiers. When an ability is trained, the highest known rank
@@ -76,6 +76,7 @@ ns.CONFIG = {
     OVERPOWER_WINDOW          = 5,
     SLAM_REACTION_WINDOW      = 0.85,
     SLAM_GCD_WAIT_TOLERANCE   = 0.25,
+    GCD_DURATION              = 1.50,
     IMPROVED_SLAM_MAX_CAST_MS = 750,
     SHOUT_REFRESH_AT          = 5,
     DEMO_SHOUT_REFRESH_AT     = 3,
@@ -88,6 +89,7 @@ ns.CONFIG = {
     AOE_ENEMY_THRESHOLD       = 2,
     SWING_EARLY_TOLERANCE     = 0.25,
     RAGE_RESERVE_BUFFER       = 8,
+    OVERPOWER_SWITCH_MAX_RAGE = 25,
     UI_TICK                   = 0.05,
     COOLDOWN_ROW_TICK         = 0.20,
 }

@@ -163,14 +163,19 @@ local function CanUseOverpower()
     if s.targetHPPercent <= ns.CONFIG.EXECUTE_HP_PCT then return false end
     if s.overpowerWindowEnd <= Now() then return false end
     if not s.overpowerTargetGUID or s.overpowerTargetGUID ~= s.targetGUID then return false end
+    -- Do not throw away a large Rage pool merely to enter Battle Stance.
+    -- When already in Battle Stance there is no stance-loss penalty.
+    if s.stance ~= ns.STANCE.BATTLE
+        and s.rage > ns.CONFIG.OVERPOWER_SWITCH_MAX_RAGE then
+        return false
+    end
     return TargetAbilityAvailable("OVERPOWER")
 end
 
 -- Bloodrage is intentionally kept simple: it is a low-Rage recovery
 -- suggestion, never allowed to replace a ready core attack.
 local function CanUseBloodrage()
-    return State().inCombat
-        and State().rage < 10
+    return State().rage < 10
         and Ready("BLOODRAGE")
 end
 
@@ -233,31 +238,12 @@ local function CanUseSingleTargetWhirlwind()
     return not MortalStrikeShouldBeReserved()
 end
 
-local function CoreAttackWouldBeStarvedBySlam(aoeActive)
-    local slamCost = AbilityCost("SLAM")
-    local rage = State().rage
-
-    if aoeActive and TargetAbilityAvailable("WHIRLWIND")
-        and rage >= AbilityCost("WHIRLWIND")
-        and rage < AbilityCost("WHIRLWIND") + slamCost then
-        return true
-    end
-
-    if TargetAbilityAvailable("MORTAL_STRIKE")
-        and rage >= AbilityCost("MORTAL_STRIKE")
-        and rage < AbilityCost("MORTAL_STRIKE") + slamCost then
-        return true
-    end
-    return false
-end
-
 local function CanSlamNow(aoeActive, surplusOnly)
     if not ImprovedSlamReady() then return false end
     if not SlamWindowOpen() then return false end
     if State().moving then return false end
     if GCDRemaining() > ns.CONFIG.SLAM_GCD_WAIT_TOLERANCE then return false end
     if not TargetAbilityAvailable("SLAM", ns.CONFIG.SLAM_GCD_WAIT_TOLERANCE) then return false end
-    if CoreAttackWouldBeStarvedBySlam(aoeActive) then return false end
 
     if surplusOnly then
         local reserve = 0
@@ -269,6 +255,20 @@ local function CanSlamNow(aoeActive, surplusOnly)
         return State().rage >= AbilityCost("SLAM") + reserve
     end
     return true
+end
+
+local function FillerGCDWouldClipNextSlam()
+    if not ImprovedSlamReady() or State().moving then return false end
+    if (State().mainhandSpeed or 0) <= 0
+        or (State().nextMainhandSwing or 0) <= 0 then
+        return false
+    end
+
+    -- Match the simulator model: fillers are safe only when their GCD will
+    -- finish no more than the tolerated delay after the next swing.
+    local fillerEndsIn = GCDRemaining() + ns.CONFIG.GCD_DURATION
+    return fillerEndsIn - SwingRemaining()
+        > ns.CONFIG.SLAM_GCD_WAIT_TOLERANCE
 end
 
 local function SweepingStrikesRequiredRage()
@@ -300,6 +300,10 @@ local function PrecombatDecision()
     local shout = ShouldRefreshShout()
     if shout and State().rage >= AbilityCost(shout) then
         return Decision(shout, "Maintain your assigned shout")
+    end
+
+    if State().targetAttackable and CanUseBloodrage() then
+        return Decision("BLOODRAGE", "Generate Rage before the pull")
     end
 
     if State().targetAttackable
@@ -357,12 +361,14 @@ local function LevelingSingleTargetDecision()
 end
 
 local function EndgameSingleTargetDecision()
-    if CanSlamNow(false, false) then
-        return Decision("SLAM", "Main-hand swing landed - Slam now")
+    -- An explicitly assigned armor debuff must not fall or remain unstacked.
+    -- This mirrors the reference simulator, which handles Sunder before Slam.
+    if Settings().maintainSunder and ShouldMaintainSunder() then
+        return Decision("SUNDER_ARMOR", "Maintain assigned armor reduction")
     end
 
-    if CanUseVictoryRush() then
-        return Decision("VICTORY_RUSH", "Use the free attack before it expires")
+    if CanSlamNow(false, false) then
+        return Decision("SLAM", "Main-hand swing landed - Slam now")
     end
 
     if TargetAbilityAvailable("MORTAL_STRIKE") then
@@ -371,6 +377,20 @@ local function EndgameSingleTargetDecision()
 
     if CanUseSingleTargetWhirlwind() then
         return Decision("WHIRLWIND", "Use without starving Mortal Strike")
+    end
+
+    -- Bloodrage is off the global cooldown and can fund the next Slam/core
+    -- action without clipping the weapon rhythm.
+    if CanUseBloodrage() then
+        return Decision("BLOODRAGE", "Generate Rage")
+    end
+
+    -- Do not spend a filler GCD when it would cover the next swing and lose
+    -- the post-swing Slam opportunity. MS and WW above remain high priority.
+    if FillerGCDWouldClipNextSlam() then return nil end
+
+    if CanUseVictoryRush() then
+        return Decision("VICTORY_RUSH", "Free filler attack after a kill")
     end
 
     -- Default two-handed Execute model: preserve Slam/MS/WW and
@@ -388,17 +408,9 @@ local function EndgameSingleTargetDecision()
         return Decision("DEMORALIZING_SHOUT", DemoShoutReason())
     end
 
-    if ShouldMaintainSunder() then
-        return Decision("SUNDER_ARMOR", "Maintain assigned armor reduction")
-    end
-
     local shout = ShouldRefreshShout()
     if shout then
         return Decision(shout, "Refresh assigned shout in a filler GCD")
-    end
-
-    if CanUseBloodrage() then
-        return Decision("BLOODRAGE", "Generate Rage")
     end
 
     return nil
@@ -452,7 +464,10 @@ local function AoeDecision(enemyCount)
         return Decision("DEMORALIZING_SHOUT", DemoShoutReason())
     end
 
-    if Ready("THUNDER_CLAP") and HasRage("THUNDER_CLAP") then
+    -- Thunder Clap is useful leveling AoE, but forcing Battle Stance for its
+    -- modest damage is not part of the level-70 two-handed DPS priority.
+    if not ImprovedSlamReady()
+        and Ready("THUNDER_CLAP") and HasRage("THUNDER_CLAP") then
         return Decision("THUNDER_CLAP", "Multi-target damage and mitigation")
     end
 

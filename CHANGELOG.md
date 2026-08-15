@@ -1,6 +1,23 @@
 # Changelog
 
-## 1.6.0-beta.3 (development)
+## 1.6.0-beta.3 - 2026-08-15
+
+### Release-candidate rotation audit
+
+- Revalidated the two-handed priority against the current Wowhead TBC guide
+  and the WoWSims TBC Warrior rotation model.
+- Restored post-swing Slam as the first ordinary damage action even when Rage
+  is not sufficient to fund both Slam and a ready Mortal Strike.
+- Added next-swing protection so Execute, Overpower, shouts, and other filler
+  globals are withheld when they would cover the following Slam window.
+- Moved Victory Rush behind Mortal Strike and Whirlwind in the level-70
+  profile, while retaining it as a free safe filler.
+- Made assigned Sunder Armor maintenance urgent enough to prevent missing
+  stacks or expiration.
+- Suppressed high-Rage Overpower stance dances that would discard a large Rage
+  pool.
+- Kept Thunder Clap in the leveling AoE profile but removed it from the default
+  level-70 damage priority, where the Battle Stance swap is usually a loss.
 
 ### Privacy-safe diagnostic recorder
 
@@ -31,7 +48,7 @@
 
 ### Rotation simulator
 
-- Added 26 deterministic scenario checks covering leveling, post-swing Slam,
+- Added 34 deterministic scenario checks covering leveling, post-swing Slam,
   Mortal Strike/Whirlwind Rage protection, Execute filler, target-specific
   Overpower, Improved Demoralizing Shout, two- to four-target AoE, Sweeping
   Strikes pooling, and Cleave.

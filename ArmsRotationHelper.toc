@@ -1,8 +1,10 @@
 ## Interface: 20506
 ## Title: Arms Rotation Helper
 ## Notes: Swing-aware PvE rotation advisor for two-handed Arms Warriors in TBC Anniversary.
-## Author: ArmsRotationHelper Contributors
-## Version: 1.6.0-beta.3-dev.6
+## Author: Lillefot92
+## Version: 1.6.0-beta.3
+## IconTexture: Interface\Icons\Ability_Warrior_SavageBlow
+## X-License: All Rights Reserved
 ## SavedVariables: ArmsRotationHelperDB
 
 Core.lua

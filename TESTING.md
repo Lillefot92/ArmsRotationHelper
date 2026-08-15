@@ -30,7 +30,7 @@ and level-70 raid conditions.
    location and 100% scale.
 7. Start and stop display preview from the panel.
 8. Select one simulator scenario, start it, advance one step, stop it, and run
-   the 26 priority checks from the panel.
+   the 34 priority checks from the panel.
 9. Start a diagnostic recording, confirm the status counts down from 60
    seconds, stop it, and open the report. The report should already be
    selected for Ctrl+C.
@@ -58,7 +58,7 @@ the safeguard: recording should stop before simulated recommendations begin.
 
 ## Simulator checks
 
-1. Run `/arh sim check`. It should report `26/26 simulator checks passed`.
+1. Run `/arh sim check`. It should report `34/34 simulator checks passed`.
 2. Run `/arh sim`. Confirm that a blue `SIMULATION` banner and the simulator
    diagnostic panel stay visible throughout the complete suite.
 3. Confirm each diagnostic step says `RESULT: PASS`.

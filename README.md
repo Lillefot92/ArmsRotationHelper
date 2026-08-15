@@ -28,13 +28,17 @@ rotation. It only recommends actions; it never casts spells or automates input.
 The level-70 single-target model is built around the established two-handed
 Arms rhythm:
 
-1. Slam immediately after a main-hand swing when it will not starve a ready
-   core attack.
+1. Slam immediately after a main-hand swing.
 2. Mortal Strike.
 3. Whirlwind, while preserving the next Mortal Strike.
 4. Execute as filler below 20% when the core actions are unavailable.
-5. Overpower, assigned Improved Demoralizing Shout, assigned Sunder Armor,
-   shout refresh, and Bloodrage as situational filler.
+5. Victory Rush, low-Rage Overpower, assigned Improved Demoralizing Shout,
+   shout refresh, and other situational fillers only when their global will
+   not cover the next Slam window.
+
+An explicitly assigned Sunder Armor is kept at five stacks before returning to
+the ordinary Slam rhythm. Bloodrage may be suggested without consuming a
+global cooldown when the rotation needs Rage.
 
 The AoE model pools enough Rage for Sweeping Strikes before recommending it,
 then favors Whirlwind, Mortal Strike, Execute on the priority target, and
@@ -98,7 +102,7 @@ legacy Interface Options fallback.
 Changes apply immediately. The panel includes target mode, assigned shout,
 stance, Sunder, and talented Demoralizing Shout options, all display toggles,
 scale and locking controls, display preview, named simulator scenarios, manual
-simulator steps, the complete 26-check rotation test, and live
+simulator steps, the complete 34-check rotation test, and live
 record/start/stop/report controls.
 
 ## Installation
@@ -110,7 +114,7 @@ record/start/stop/report controls.
 4. Confirm that the final path contains
    `ArmsRotationHelper/ArmsRotationHelper.toc`.
 5. Start the game, enable the addon, then enter `/arh`.
-6. Enter `/arh sim check`; the development build should report every scenario
+6. Enter `/arh sim check`; the public beta should report every scenario
    as passed.
 
 See `TESTING.md` for the beta checklist and useful bug-report details.
@@ -160,7 +164,8 @@ rotation model:
 - Automatic enemy counting is inferred from recent combat-log interactions. It
   cannot know every nearby unengaged enemy; use `/arh mode aoe` when needed.
 - The addon does not predict future Rage from incoming damage.
-- A player must validate the level-70 sequence in real dungeons and raids before
-  the project should be called release-ready.
-- A public license and final CurseForge author/project metadata still need to be
-  selected before publication.
+- This release is specifically for two-handed Arms PvE. Dual-wield Arms,
+  tanking, and PvP priorities are outside its supported scope.
+- Level-70 dungeon and raid feedback is still needed. Use `/arh record` and
+  paste the privacy-safe `/arh report` into a CurseForge comment when a
+  recommendation looks wrong.

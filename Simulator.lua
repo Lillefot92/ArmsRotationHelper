@@ -115,15 +115,41 @@ local scenarios = {
             cooldowns = { MORTAL_STRIKE = 4, WHIRLWIND = 0 },
             expectedMain = "WHIRLWIND",
         },
-    },
-    rage = {
         {
-            label = "Protect ready Mortal Strike from Slam",
-            state = { rage = 40 },
+            label = "Movement skips Slam and uses Mortal Strike",
+            state = { rage = 60, moving = true },
             cooldowns = { SLAM = 0, MORTAL_STRIKE = 0 },
             slamWindowOpen = true,
             swingProgress = 0.99,
             expectedMain = "MORTAL_STRIKE",
+        },
+        {
+            label = "Ready core attack stays ahead of Victory Rush",
+            state = { rage = 60 },
+            cooldowns = { MORTAL_STRIKE = 0, VICTORY_RUSH = 0 },
+            usable = { VICTORY_RUSH = true },
+            expectedMain = "MORTAL_STRIKE",
+        },
+        {
+            label = "Victory Rush is a safe free filler",
+            state = { rage = 30 },
+            cooldowns = {
+                MORTAL_STRIKE = 5,
+                WHIRLWIND = 5,
+                VICTORY_RUSH = 0,
+            },
+            usable = { VICTORY_RUSH = true },
+            expectedMain = "VICTORY_RUSH",
+        },
+    },
+    rage = {
+        {
+            label = "Post-swing Slam remains first at limited Rage",
+            state = { rage = 40 },
+            cooldowns = { SLAM = 0, MORTAL_STRIKE = 0 },
+            slamWindowOpen = true,
+            swingProgress = 0.99,
+            expectedMain = "SLAM",
         },
         {
             label = "Slam once Rage also funds Mortal Strike",
@@ -137,6 +163,23 @@ local scenarios = {
             label = "Hold Whirlwind for imminent Mortal Strike",
             state = { rage = 40 },
             cooldowns = { MORTAL_STRIKE = 1.5, WHIRLWIND = 0 },
+        },
+        {
+            label = "Assigned Sunder maintenance precedes Slam",
+            state = {
+                rage = 60,
+                sunderStacks = 4,
+                sunderExpiration = 0,
+            },
+            cooldowns = {
+                SUNDER_ARMOR = 0,
+                SLAM = 0,
+                MORTAL_STRIKE = 0,
+            },
+            maintainSunder = true,
+            slamWindowOpen = true,
+            swingProgress = 0.99,
+            expectedMain = "SUNDER_ARMOR",
         },
     },
     execute = {
@@ -183,12 +226,22 @@ local scenarios = {
             },
             expectedMain = "EXECUTE",
         },
+        {
+            label = "Wait instead of clipping an imminent Slam",
+            state = { rage = 35, targetHPPercent = 15 },
+            cooldowns = {
+                MORTAL_STRIKE = 5,
+                WHIRLWIND = 5,
+                EXECUTE = 0,
+            },
+            swingRemaining = 0.8,
+        },
     },
     overpower = {
         {
             label = "Matching dodge proc recommends Battle Stance",
             state = {
-                rage = 30,
+                rage = 20,
                 stance = ns.STANCE.BERSERKER,
                 overpowerWindow = "matching",
             },
@@ -199,6 +252,19 @@ local scenarios = {
             },
             expectedMain = "OVERPOWER",
             expectedStance = ns.STANCE.BATTLE,
+        },
+        {
+            label = "High Rage suppresses a costly stance dance",
+            state = {
+                rage = 60,
+                stance = ns.STANCE.BERSERKER,
+                overpowerWindow = "matching",
+            },
+            cooldowns = {
+                MORTAL_STRIKE = 5,
+                WHIRLWIND = 5,
+                OVERPOWER = 0,
+            },
         },
         {
             label = "Dodge proc from another target is ignored",
@@ -307,6 +373,23 @@ local scenarios = {
             slamWindowOpen = true,
             swingProgress = 0.99,
             expectedMain = "SLAM",
+        },
+        {
+            label = "Endgame AoE does not force Thunder Clap",
+            state = { rage = 40, enemyCount = 4, sweepingActive = true },
+            cooldowns = {
+                WHIRLWIND = 5,
+                MORTAL_STRIKE = 5,
+                THUNDER_CLAP = 0,
+            },
+        },
+        {
+            label = "Leveling AoE uses Thunder Clap as filler",
+            known = LEVELING_KNOWN,
+            improvedSlam = false,
+            state = { rage = 40, enemyCount = 3, targetTTD = 5 },
+            cooldowns = { THUNDER_CLAP = 0 },
+            expectedMain = "THUNDER_CLAP",
         },
     },
     cleave = {
@@ -441,7 +524,7 @@ local function BuildContext(step)
         db = {
             mode = step.mode or "auto",
             assignedShout = "battle",
-            maintainSunder = false,
+            maintainSunder = step.maintainSunder == true,
             maintainDemoShout = step.maintainDemoShout == true,
             showQueue = true,
             stanceAdvice = true,
@@ -450,7 +533,7 @@ local function BuildContext(step)
         costs = costs,
         cooldowns = cooldowns,
         inRange = inRange,
-        usable = { VICTORY_RUSH = false },
+        usable = step.usable or { VICTORY_RUSH = false },
         insufficientPower = { VICTORY_RUSH = false },
         gcdRemaining = step.gcdRemaining or 0,
         swingRemaining = swingRemaining,
