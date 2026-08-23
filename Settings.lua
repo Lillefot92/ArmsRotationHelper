@@ -336,11 +336,20 @@ CreateCheckbox(
 )
 
 CreateCheckbox(
+    "ArmsRotationHelperWaitCheckbox",
+    "Intentional wait indicator",
+    "Shows a dimmed watch when using a filler would cover the next swing and lose the post-swing Slam opportunity. It never glows an action-bar button.",
+    372,
+    -398,
+    "showWaitIndicator"
+)
+
+CreateCheckbox(
     "ArmsRotationHelperDebugCheckbox",
     "Diagnostic panel",
     "Shows the live combat values used by the recommendation engine. Useful for testing and bug reports.",
-    372,
-    -398,
+    24,
+    -430,
     "debugMode"
 )
 
@@ -396,6 +405,7 @@ local scenarioDropdown = CreateDropdown(
         { value = "slam", label = "Slam rhythm" },
         { value = "rage", label = "Rage protection" },
         { value = "execute", label = "Execute phase" },
+        { value = "haste", label = "Stacked haste" },
         { value = "overpower", label = "Overpower stance" },
         { value = "demoralizing", label = "Improved Demo Shout" },
         { value = "aoe", label = "AoE priority" },
@@ -548,7 +558,7 @@ helpText:SetPoint("TOPLEFT", panel, "TOPLEFT", 28, -696)
 helpText:SetWidth(PANEL_WIDTH - 56)
 helpText:SetJustifyH("LEFT")
 helpText:SetText(
-    "Hover over the main icon for live details; right-click it to cycle target mode. "
+    "Hover over the action or wait icon for live details; right-click it to cycle target mode. "
         .. "Diagnostic reports stay in memory and never include player, realm, or target names."
 )
 

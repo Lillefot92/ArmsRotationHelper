@@ -1,36 +1,34 @@
-# 1.6.0-beta.4
+# 1.6.1-beta.1
 
-Compact interface update for World of Warcraft: The Burning Crusade
-Anniversary 2.5.6.
+Clarity and stacked-haste validation update for World of Warcraft: The
+Burning Crusade Anniversary 2.5.6.
 
-## Highlights
+## Intentional wait indicator
 
-- Cleaner icon-first combat display inspired by the matching MoP Rogue helper.
-- Large primary recommendation with compact stance, queue, cooldown, and
-  trinket icons.
-- No permanent ability names, reasons, stance/queue labels, cooldown names, or
-  swing-time numbers during combat.
-- Hover the primary icon for the full recommendation reason, target mode,
-  Rage, swing timing, queue advice, and required stance.
-- Thin teal swing strip that turns orange for a valid post-swing Slam.
-- Right-click the primary icon to cycle Automatic, Single, and AoE modes.
-- Restyled dark/teal settings panel with cleaner sections and a live status
-  summary.
+- Added an optional dimmed watch when a filler global would cover the next
+  swing and lose the post-swing Slam opportunity.
+- The watch uses a muted blue border, never glows an action-bar button, and
+  explains the hold on hover.
+- The indicator is enabled by default and can be changed in settings or with
+  `/arh wait`.
+- Display preview and the simulator now demonstrate the wait state clearly.
 
-## Rotation and testing retained
+## Stacked-haste checks
 
-- Swing-aware two-handed Arms priority: swing, Slam, Mortal Strike/Whirlwind,
-  then safe filler.
+- Added deterministic coverage for Haste Potion, Potion plus Dragonspine
+  Trophy, DST-only, and return-to-base weapon speeds.
+- Verified that each speed change preserves the remaining fraction of the
+  active swing instead of restarting it.
+- Added an in-game `Stacked haste` scenario covering safe filler, an imminent
+  swing hold, and immediate post-swing Slam at faster speeds.
+- Expanded the built-in priority suite from 34 to 39 passing checks.
+
+## Unchanged rotation model
+
+- Main-hand swing → Slam → Mortal Strike / Whirlwind → safe filler.
 - Execute remains a filler below 20%; no weapon swapping is recommended.
-- Sweeping Strikes, Whirlwind, Mortal Strike, Execute, and separate Cleave
-  queue advice for multi-target combat.
-- Rage protection for Heroic Strike/Cleave and the next core sequence.
-- Level-adaptive recommendations while the character is still leveling.
-- Optional assigned Sunder Armor, talented Demoralizing Shout maintenance,
-  and stance advice.
-- Blizzard, Bartender4, and Dominos action-button highlighting.
-- Built-in 34-scenario priority test and privacy-safe 60-second diagnostic
-  report remain available from the cleaner settings panel.
+- Single-target and AoE priorities, Sweeping Strikes pooling, and separate
+  Heroic Strike/Cleave queue advice remain intact.
 
 This remains a beta because broad level-70 raid and heroic-dungeon feedback is
 needed. If a recommendation looks wrong, run `/arh record`, reproduce it for

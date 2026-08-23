@@ -16,6 +16,8 @@ equipment, targets enemies, or automates player input.
 
 - Clean icon-first combat display with a large primary recommendation and
   compact, unlabeled secondary icons.
+- Optional muted wait indicator when a filler would clip the next Slam window;
+  it never glows an action-bar button.
 - Full ability reason, Rage, swing timing, target mode, queue, and stance
   details available by hovering the primary icon.
 - Post-swing Slam timing with a live main-hand swing bar.
@@ -34,7 +36,7 @@ equipment, targets enemies, or automates player input.
 - Action-button highlighting for Blizzard bars, Bartender4, and Dominos.
 - Compact cooldown and trinket icons with hover names.
 - In-game settings under `Escape → Options → AddOns`, or `/arh`.
-- Built-in 34-scenario priority self-test.
+- Built-in 39-scenario priority self-test, including stacked-haste checks.
 - Privacy-safe 60-second diagnostic report for useful bug reports.
 
 ## Single-target priority
@@ -69,7 +71,8 @@ an unengaged nearby enemy, force the profile with `/arh mode aoe`.
 ## Commands and testing
 
 - `/arh` — open settings.
-- `/arh sim check` — run all 34 deterministic priority checks.
+- `/arh sim check` — run all 39 deterministic priority checks.
+- `/arh wait` — toggle the intentional wait indicator.
 - `/arh mode auto|single|aoe` — select target-count behavior.
 - `/arh record` — record up to 60 seconds of anonymous decision data.
 - `/arh report` — open the selected, copyable diagnostic report.

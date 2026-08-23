@@ -10,6 +10,7 @@ rotation. It only recommends actions; it never casts spells or automates input.
 ## What it shows
 
 - A large, clean primary ability icon with full details available on hover.
+- An optional dimmed wait icon when a filler would clip the next Slam window.
 - A thin main-hand swing strip that turns orange during the post-swing Slam
   window.
 - Compact, unlabeled Heroic Strike/Cleave queue and optional stance icons.
@@ -74,13 +75,14 @@ available as a slash command for quick access.
 - `/arh stance` - toggle optional stance advice.
 - `/arh swing` - toggle the main-hand swing bar.
 - `/arh queue` - toggle Heroic Strike/Cleave queue advice.
+- `/arh wait` - toggle the intentional wait indicator.
 - `/arh sunder` - toggle the five-stack Sunder Armor assignment.
 - `/arh demo` - toggle talented Demoralizing Shout maintenance.
 - `/arh icon`, `/arh glow`, `/arh cooldowns` - toggle display parts.
 - `/arh test` - preview the high-level display.
 - `/arh sim` - run the complete rotation simulator.
-- `/arh sim leveling|slam|rage|execute|overpower|demoralizing|aoe|cleave` - run one
-  scenario group.
+- `/arh sim leveling|slam|rage|execute|haste|overpower|demoralizing|aoe|cleave`
+  - run one scenario group.
 - `/arh sim next|stop|check|list` - control the simulator or run all automated
   priority checks.
 - `/arh record` or `/arh record start|stop` - capture up to 60 seconds of live
@@ -102,11 +104,11 @@ legacy Interface Options fallback.
 Changes apply immediately. The panel includes target mode, assigned shout,
 stance, Sunder, and talented Demoralizing Shout options, all display toggles,
 scale and locking controls, display preview, named simulator scenarios, manual
-simulator steps, the complete 34-check rotation test, and live
+simulator steps, the complete 39-check rotation test, and live
 record/start/stop/report controls.
 
 The live combat view intentionally contains no permanent ability names or
-decision text. Hover the primary icon for the full reason and current combat
+decision text. Hover the primary action or wait icon for the full reason and current combat
 details, or right-click it to cycle Automatic, Single, and AoE target modes.
 
 ## Installation

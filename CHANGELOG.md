@@ -1,5 +1,26 @@
 # Changelog
 
+## 1.6.1-beta.1 - 2026-08-23
+
+### Intentional wait indicator
+
+- Added an optional dimmed watch when a filler global would cover the next
+  swing and lose the post-swing Slam opportunity.
+- Kept the wait state visually separate from ability recommendations: it has
+  a muted blue border, never starts an action-bar glow, and explains itself on
+  hover.
+- Added the wait phase to display preview, simulation, diagnostics, settings,
+  and `/arh wait`.
+
+### Stacked-haste validation
+
+- Extracted and regression-tested the fractional swing rescaling used when
+  effective main-hand speed changes during a swing.
+- Added Potion, Potion+DST, DST-only, and return-to-base transition checks.
+- Added a five-step in-game stacked-haste scenario covering safe filler,
+  intentional waiting, and post-swing Slam at faster weapon speeds.
+- Expanded the deterministic priority suite from 34 to 39 checks.
+
 ## 1.6.0-beta.4 - 2026-08-15
 
 ### Compact combat display

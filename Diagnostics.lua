@@ -121,6 +121,7 @@ local function CaptureMetadata()
         maintainDemoShout = db.maintainDemoShout == true,
         showSwingBar = db.showSwingBar == true,
         showQueue = db.showQueue == true,
+        showWaitIndicator = db.showWaitIndicator == true,
     }
 end
 
@@ -238,7 +239,9 @@ local function SnapshotSignature(snapshot, state, slamWindowOpen)
     return table.concat({
         snapshot.main and snapshot.main.ability or "WAIT",
         snapshot.queue and snapshot.queue.ability or "NONE",
-        snapshot.main and snapshot.main.reason or "",
+        snapshot.main and snapshot.main.reason
+            or snapshot.wait and snapshot.wait.reason or "",
+        snapshot.wait and snapshot.wait.kind or "NONE",
         state.inCombat and "1" or "0",
         state.targetAttackable and "1" or "0",
         tostring(state.stance or 0),
@@ -281,7 +284,8 @@ function ns.Diagnostics_Sample(snapshot)
         elapsed = Elapsed(now),
         main = snapshot.main and snapshot.main.ability or "WAIT",
         queue = snapshot.queue and snapshot.queue.ability or "NONE",
-        reason = snapshot.main and CleanText(snapshot.main.reason) or "",
+        reason = snapshot.main and CleanText(snapshot.main.reason)
+            or snapshot.wait and CleanText(snapshot.wait.reason) or "",
         rage = Number(state.rage, 0),
         targetHP = Number(state.targetHPPercent, 100),
         targetTTD = math.min(999, Number(state.targetTTD, 999)),
@@ -352,6 +356,7 @@ function ns.Diagnostics_GetReport()
             BooleanText(metadata.maintainDemoShout)),
         SettingLine("Swing bar", BooleanText(metadata.showSwingBar)),
         SettingLine("Queue advice", BooleanText(metadata.showQueue)),
+        SettingLine("Wait indicator", BooleanText(metadata.showWaitIndicator)),
         "",
         "Row types: E=anonymous event, A=ability use, S=state sample.",
         "State columns:",

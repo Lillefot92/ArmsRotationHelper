@@ -41,6 +41,7 @@ local SCENARIO_ORDER = {
     "slam",
     "rage",
     "execute",
+    "haste",
     "overpower",
     "demoralizing",
     "aoe",
@@ -52,6 +53,7 @@ local SCENARIO_LABELS = {
     slam = "Slam rhythm",
     rage = "Rage protection",
     execute = "Execute phase",
+    haste = "Stacked haste",
     overpower = "Overpower stance",
     demoralizing = "Improved Demo Shout",
     aoe = "AoE priority",
@@ -235,6 +237,77 @@ local scenarios = {
                 EXECUTE = 0,
             },
             swingRemaining = 0.8,
+            expectedWait = "slam",
+        },
+    },
+    haste = {
+        {
+            label = "Haste Potion: filler still fits before the swing",
+            state = {
+                rage = 35,
+                targetHPPercent = 15,
+                mainhandSpeed = 2.8,
+            },
+            cooldowns = {
+                MORTAL_STRIKE = 5,
+                WHIRLWIND = 5,
+                EXECUTE = 0,
+            },
+            swingRemaining = 2.0,
+            expectedMain = "EXECUTE",
+        },
+        {
+            label = "DST stacks during Haste Potion: hold filler",
+            state = {
+                rage = 35,
+                targetHPPercent = 15,
+                mainhandSpeed = 2.2,
+            },
+            cooldowns = {
+                MORTAL_STRIKE = 5,
+                WHIRLWIND = 5,
+                EXECUTE = 0,
+            },
+            swingRemaining = 0.9,
+            expectedWait = "slam",
+        },
+        {
+            label = "Stacked haste swing landed: Slam immediately",
+            state = { rage = 45, mainhandSpeed = 2.2 },
+            cooldowns = { SLAM = 0, MORTAL_STRIKE = 0 },
+            slamWindowOpen = true,
+            swingProgress = 0.99,
+            expectedMain = "SLAM",
+        },
+        {
+            label = "Haste Potion expires with DST active: filler is safe",
+            state = {
+                rage = 35,
+                targetHPPercent = 15,
+                mainhandSpeed = 2.9,
+            },
+            cooldowns = {
+                MORTAL_STRIKE = 5,
+                WHIRLWIND = 5,
+                EXECUTE = 0,
+            },
+            swingRemaining = 1.8,
+            expectedMain = "EXECUTE",
+        },
+        {
+            label = "All haste expires: base-speed filler remains safe",
+            state = {
+                rage = 35,
+                targetHPPercent = 15,
+                mainhandSpeed = 3.6,
+            },
+            cooldowns = {
+                MORTAL_STRIKE = 5,
+                WHIRLWIND = 5,
+                EXECUTE = 0,
+            },
+            swingRemaining = 2.6,
+            expectedMain = "EXECUTE",
         },
     },
     overpower = {
@@ -570,9 +643,11 @@ local function StepPassed(step, snapshot)
     local actualMain = ActualAbility(snapshot.main)
     local actualQueue = ActualAbility(snapshot.queue)
     local actualStance = snapshot.main and snapshot.main.stance or nil
+    local actualWait = snapshot.wait and snapshot.wait.kind or nil
     return actualMain == step.expectedMain
         and actualQueue == step.expectedQueue
         and actualStance == step.expectedStance
+        and actualWait == step.expectedWait
 end
 
 local function DescribeResult(step, snapshot)
@@ -582,15 +657,19 @@ local function DescribeResult(step, snapshot)
     local actualQueue = ActualAbility(snapshot.queue) or "NONE"
     local expectedStance = step.expectedStance or 0
     local actualStance = snapshot.main and snapshot.main.stance or 0
+    local expectedWait = step.expectedWait or "NONE"
+    local actualWait = snapshot.wait and snapshot.wait.kind or "NONE"
     return string.format(
-        "%s: main %s/%s, queue %s/%s, stance %d/%d",
+        "%s: main %s/%s, queue %s/%s, stance %d/%d, wait %s/%s",
         step.label,
         actualMain,
         expectedMain,
         actualQueue,
         expectedQueue,
         actualStance,
-        expectedStance
+        expectedStance,
+        actualWait,
+        expectedWait
     )
 end
 

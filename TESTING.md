@@ -35,7 +35,7 @@ and level-70 raid conditions.
    location and 100% scale.
 7. Start and stop display preview from the panel.
 8. Select one simulator scenario, start it, advance one step, stop it, and run
-   the 34 priority checks from the panel.
+   the 39 priority checks from the panel.
 9. Start a diagnostic recording, confirm the status counts down from 60
    seconds, stop it, and open the report. The report should already be
    selected for Ctrl+C.
@@ -63,7 +63,7 @@ the safeguard: recording should stop before simulated recommendations begin.
 
 ## Simulator checks
 
-1. Run `/arh sim check`. It should report `34/34 simulator checks passed`.
+1. Run `/arh sim check`. It should report `39/39 simulator checks passed`.
 2. Run `/arh sim`. Confirm that a blue `SIMULATION` banner and the simulator
    diagnostic panel stay visible throughout the complete suite.
 3. Confirm each diagnostic step says `RESULT: PASS`.
@@ -78,6 +78,7 @@ Individual groups can be repeated with:
 - `/arh sim slam` - post-swing Slam, Mortal Strike, and Whirlwind rhythm.
 - `/arh sim rage` - Mortal Strike/Whirlwind Rage protection.
 - `/arh sim execute` - no-weapon-swap Execute filler priority.
+- `/arh sim haste` - Haste Potion/DST overlap, waiting, and Slam timing.
 - `/arh sim overpower` - target-specific dodge proc and stance advice.
 - `/arh sim demoralizing` - talented Demo Shout assignment and refresh rules.
 - `/arh sim aoe` - two-, three-, and four-target priorities.
@@ -134,6 +135,12 @@ Test on a target dummy or durable boss target:
 - Casting Slam should restart the predicted main-hand timer.
 - A haste gain or loss should rescale the remaining swing time without restarting
   the bar from zero.
+- During overlapping Haste Potion and DST speed, the muted watch should appear
+  only when a filler global would cover the next swing. It must not glow an
+  action-bar button. Hover it for `Wait - protect the next post-swing Slam`.
+- Let Haste Potion and DST start and expire in either order. The bar should
+  preserve its completed fraction on every speed change rather than jumping
+  back to the start.
 - Sword Specialization/Windfury-style extra attacks should not restart the
   underlying TBC swing timer.
 - Mortal Strike should be prioritized when ready.

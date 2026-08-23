@@ -90,6 +90,13 @@ local function Decision(key, reason)
     }
 end
 
+local function WaitDecision(kind, reason)
+    return {
+        kind = kind or "wait",
+        reason = reason or "Wait for the next swing",
+    }
+end
+
 local function Knows(key)
     if evaluationContext and evaluationContext.known then
         return evaluationContext.known[key] == true
@@ -387,7 +394,12 @@ local function EndgameSingleTargetDecision()
 
     -- Do not spend a filler GCD when it would cover the next swing and lose
     -- the post-swing Slam opportunity. MS and WW above remain high priority.
-    if FillerGCDWouldClipNextSlam() then return nil end
+    if FillerGCDWouldClipNextSlam() then
+        return nil, WaitDecision(
+            "slam",
+            "Wait - protect the next post-swing Slam"
+        )
+    end
 
     if CanUseVictoryRush() then
         return Decision("VICTORY_RUSH", "Free filler attack after a kill")
@@ -557,6 +569,7 @@ local function EvaluateSnapshot()
     local aoeActive, enemyCount = GetTargetMode()
     local slamBuild = ImprovedSlamReady()
     local decision
+    local wait
 
     if not State().inCombat then
         decision = PrecombatDecision()
@@ -566,7 +579,7 @@ local function EvaluateSnapshot()
         if aoeActive then
             decision = AoeDecision(math.max(2, enemyCount))
         elseif slamBuild then
-            decision = EndgameSingleTargetDecision()
+            decision, wait = EndgameSingleTargetDecision()
         else
             decision = LevelingSingleTargetDecision()
         end
@@ -575,6 +588,7 @@ local function EvaluateSnapshot()
     local queue = QueueDecision(aoeActive)
     return {
         main = decision,
+        wait = wait,
         queue = queue,
         aoeActive = aoeActive,
         enemyCount = enemyCount,
@@ -596,7 +610,11 @@ end
 function ns.Rotation_GetNextAbility()
     local snapshot = ns.Rotation_GetSnapshot()
     local main = snapshot.main
-    if not main then return nil, "Wait for the next swing", nil end
+    if not main then
+        return nil,
+            snapshot.wait and snapshot.wait.reason or "Wait for the next swing",
+            nil
+    end
     return main.ability, main.reason, main.stance
 end
 

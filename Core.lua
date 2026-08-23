@@ -13,7 +13,7 @@ local BOOKTYPE_SPELL_VALUE = BOOKTYPE_SPELL or "spell"
 local RAGE_POWER_TYPE = (Enum and Enum.PowerType and Enum.PowerType.Rage) or 1
 
 ns.RAGE_POWER_TYPE = RAGE_POWER_TYPE
-ns.VERSION = "1.6.0-beta.4"
+ns.VERSION = "1.6.1-beta.1"
 
 -- Base-rank spell IDs are used only as stable, locale-independent
 -- identifiers. When an ability is trained, the highest known rank
@@ -204,6 +204,7 @@ local function InitDB()
     if db.showCooldowns  == nil then db.showCooldowns = true end
     if db.showSwingBar   == nil then db.showSwingBar = true end
     if db.showQueue      == nil then db.showQueue = true end
+    if db.showWaitIndicator == nil then db.showWaitIndicator = true end
     if db.stanceAdvice   == nil then db.stanceAdvice = true end
     if db.locked         == nil then db.locked = true end
     if db.debugMode      == nil then db.debugMode = false end
@@ -661,6 +662,20 @@ function ns.GetMainhandSpeed()
     return speed or 0
 end
 
+function ns.RescaleSwingRemaining(remaining, oldSpeed, newSpeed)
+    remaining = math.max(0, tonumber(remaining) or 0)
+    oldSpeed = tonumber(oldSpeed) or 0
+    newSpeed = tonumber(newSpeed) or 0
+
+    if remaining <= 0 or oldSpeed <= 0 or newSpeed <= 0 then
+        return remaining
+    end
+
+    local fractionRemaining = remaining / oldSpeed
+    fractionRemaining = math.max(0, math.min(1, fractionRemaining))
+    return fractionRemaining * newSpeed
+end
+
 function ns.UpdateAttackSpeed()
     local now = GetTime()
     local oldSpeed = ns.state.mainhandSpeed or 0
@@ -668,9 +683,9 @@ function ns.UpdateAttackSpeed()
 
     if newSpeed <= 0 then return end
     if oldSpeed > 0 and ns.state.nextMainhandSwing > now then
-        local fractionRemaining = (ns.state.nextMainhandSwing - now) / oldSpeed
-        fractionRemaining = math.max(0, math.min(1, fractionRemaining))
-        ns.state.nextMainhandSwing = now + fractionRemaining * newSpeed
+        local remaining = ns.state.nextMainhandSwing - now
+        ns.state.nextMainhandSwing = now
+            + ns.RescaleSwingRemaining(remaining, oldSpeed, newSpeed)
     end
     ns.state.mainhandSpeed = newSpeed
     if oldSpeed > 0 and math.abs(newSpeed - oldSpeed) > 0.01
@@ -1166,6 +1181,9 @@ SlashCmdList["ARMSROTATIONHELPER"] = function(message)
         print(prefix .. "Swing bar: " .. OnOff(ToggleSetting("showSwingBar")))
     elseif message == "queue" then
         print(prefix .. "Heroic Strike/Cleave queue indicator: " .. OnOff(ToggleSetting("showQueue")))
+    elseif message == "wait" then
+        print(prefix .. "Intentional wait indicator: "
+            .. OnOff(ToggleSetting("showWaitIndicator")))
     elseif message == "stance" then
         print(prefix .. "Optional stance advice: " .. OnOff(ToggleSetting("stanceAdvice")))
     elseif message == "sunder" then
@@ -1315,6 +1333,7 @@ SlashCmdList["ARMSROTATIONHELPER"] = function(message)
         print("  /arh stance              - toggle optional stance advice")
         print("  /arh swing               - toggle the main-hand swing bar")
         print("  /arh queue               - toggle HS/Cleave queue advice")
+        print("  /arh wait                - toggle intentional wait advice")
         print("  /arh sunder              - toggle five-stack Sunder assignment")
         print("  /arh demo                - toggle talented Demo Shout assignment")
         print("  /arh icon | glow          - toggle main icon/action-bar glow")

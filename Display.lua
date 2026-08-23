@@ -16,8 +16,11 @@ local COLORS = {
     slam = { 1.00, 0.66, 0.20, 1.00 },
     stance = { 1.00, 0.55, 0.12, 1.00 },
     queue = { 0.25, 0.62, 1.00, 1.00 },
+    wait = { 0.44, 0.58, 0.76, 1.00 },
     inactive = { 0.22, 0.27, 0.34, 0.95 },
 }
+
+local WAIT_ICON_TEXTURE = "Interface\\Icons\\INV_Misc_PocketWatch_01"
 
 local root = CreateFrame("Frame", "ArmsRotationHelperRoot", UIParent)
 root:SetSize(180, 160)
@@ -413,19 +416,30 @@ end
 local function ShowMainTooltip()
     local snapshot = lastDisplaySnapshot
     local decision = snapshot and snapshot.main
-    if not decision then return end
+    local wait = snapshot and snapshot.wait
+    if not decision and not wait then return end
 
     GameTooltip:SetOwner(mainFrame, "ANCHOR_TOP")
     if GameTooltip.ClearLines then GameTooltip:ClearLines() end
     GameTooltip:AddLine("Arms Rotation Helper", 0.20, 1.00, 0.88)
-    GameTooltip:AddLine(
-        ns.GetAbilityName(decision.ability) or decision.ability,
-        1,
-        1,
-        1
-    )
-    if decision.reason and decision.reason ~= "" then
-        GameTooltip:AddLine(decision.reason, 0.72, 0.78, 0.86, true)
+    if wait then
+        GameTooltip:AddLine(
+            "WAIT",
+            COLORS.wait[1],
+            COLORS.wait[2],
+            COLORS.wait[3]
+        )
+        GameTooltip:AddLine(wait.reason, 0.72, 0.78, 0.86, true)
+    else
+        GameTooltip:AddLine(
+            ns.GetAbilityName(decision.ability) or decision.ability,
+            1,
+            1,
+            1
+        )
+        if decision.reason and decision.reason ~= "" then
+            GameTooltip:AddLine(decision.reason, 0.72, 0.78, 0.86, true)
+        end
     end
     GameTooltip:AddLine(" ")
     GameTooltip:AddDoubleLine(
@@ -461,7 +475,7 @@ local function ShowMainTooltip()
             COLORS.queue[3]
         )
     end
-    if decision.stance then
+    if decision and decision.stance then
         local stanceKey = ns.GetStanceKey(decision.stance)
         GameTooltip:AddDoubleLine(
             "Required stance",
@@ -786,6 +800,9 @@ local function BuildDebugLines(snapshot)
     if snapshot.main then
         table.insert(lines, "Main: " .. (ns.GetAbilityName(snapshot.main.ability) or "?"))
         table.insert(lines, "Reason: " .. (snapshot.main.reason or ""))
+    elseif snapshot.wait then
+        table.insert(lines, "Main: intentional wait (" .. snapshot.wait.kind .. ")")
+        table.insert(lines, "Reason: " .. (snapshot.wait.reason or ""))
     else
         table.insert(lines, "Main: wait for swing / build Rage")
         table.insert(lines, "Reason: no higher-priority action")
@@ -837,18 +854,11 @@ end
 local testModeStartedAt = 0
 
 local function BuildTestSnapshot()
-    local keys = { "SLAM", "MORTAL_STRIKE", "WHIRLWIND" }
+    local keys = { "SLAM", "MORTAL_STRIKE", "WHIRLWIND", "WAIT" }
     local elapsed = GetTime() - testModeStartedAt
     local index = math.floor(elapsed / 1.5) % #keys + 1
     local key = keys[index]
-    return {
-        main = {
-            ability = key,
-            reason = key == "SLAM"
-                and "Main-hand swing landed - Slam now"
-                or "Display test preview",
-            stance = key == "WHIRLWIND" and ns.STANCE.BERSERKER or nil,
-        },
+    local snapshot = {
         queue = {
             ability = "HEROIC_STRIKE",
             reason = "Queue next swing",
@@ -858,6 +868,22 @@ local function BuildTestSnapshot()
         slamBuild = true,
         testProgress = (elapsed % 3.6) / 3.6,
     }
+
+    if key == "WAIT" then
+        snapshot.wait = {
+            kind = "slam",
+            reason = "Wait - protect the next post-swing Slam",
+        }
+    else
+        snapshot.main = {
+            ability = key,
+            reason = key == "SLAM"
+                and "Main-hand swing landed - Slam now"
+                or "Display test preview",
+            stance = key == "WHIRLWIND" and ns.STANCE.BERSERKER or nil,
+        }
+    end
+    return snapshot
 end
 
 function ns.Display_SetTestMode(enabled)
@@ -873,7 +899,9 @@ end
 
 local function UpdateMainIcon(snapshot)
     local decision = snapshot and snapshot.main
-    if not ns.db.showIcon or not decision then
+    local wait = snapshot and snapshot.wait
+    local showWait = ns.db.showWaitIndicator and wait
+    if not ns.db.showIcon or (not decision and not showWait) then
         mainFrame:Hide()
         mainCooldown:SetCooldown(0, 0)
         if TooltipIsOwned(mainFrame) then GameTooltip:Hide() end
@@ -882,6 +910,26 @@ local function UpdateMainIcon(snapshot)
     end
 
     lastDisplaySnapshot = snapshot
+    if showWait then
+        mainTexture:SetTexture(WAIT_ICON_TEXTURE)
+        if mainTexture.SetDesaturated then mainTexture:SetDesaturated(true) end
+        mainTexture:SetVertexColor(0.72, 0.78, 0.86, 0.88)
+        mainCooldown:SetCooldown(0, 0)
+        SetBorder(mainFrame, ns.db.locked and COLORS.wait or COLORS.stance)
+        mainFrame:Show()
+
+        if tooltipVisible and GetTime() - tooltipLastRefresh >= 0.20 then
+            if TooltipIsOwned(mainFrame) then
+                ShowMainTooltip()
+            else
+                tooltipVisible = false
+            end
+        end
+        return
+    end
+
+    if mainTexture.SetDesaturated then mainTexture:SetDesaturated(false) end
+    mainTexture:SetVertexColor(1, 1, 1, 1)
     mainTexture:SetTexture(ns.GetAbilityIcon(decision.ability))
     local identifier = ns.GetAbilityIdentifier(decision.ability)
     local start, duration = ns.GetCooldown(identifier)
@@ -974,6 +1022,13 @@ local function UpdateSwingBar(snapshot)
             COLORS.slam[1],
             COLORS.slam[2],
             COLORS.slam[3],
+            0.95
+        )
+    elseif ns.db.showWaitIndicator and snapshot and snapshot.wait then
+        swingFill:SetColorTexture(
+            COLORS.wait[1],
+            COLORS.wait[2],
+            COLORS.wait[3],
             0.95
         )
     else
