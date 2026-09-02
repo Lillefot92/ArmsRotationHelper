@@ -386,12 +386,6 @@ local function EndgameSingleTargetDecision()
         return Decision("WHIRLWIND", "Use without starving Mortal Strike")
     end
 
-    -- Bloodrage is off the global cooldown and can fund the next Slam/core
-    -- action without clipping the weapon rhythm.
-    if CanUseBloodrage() then
-        return Decision("BLOODRAGE", "Generate Rage")
-    end
-
     -- Do not spend a filler GCD when it would cover the next swing and lose
     -- the post-swing Slam opportunity. MS and WW above remain high priority.
     if FillerGCDWouldClipNextSlam() then
@@ -412,6 +406,8 @@ local function EndgameSingleTargetDecision()
         return Decision("EXECUTE", "Execute-phase filler")
     end
 
+    -- A dodge-proc Overpower window is a use-it-or-lose-it resource (it
+    -- expires), so it is checked before the always-available Bloodrage.
     if CanUseOverpower() then
         return Decision("OVERPOWER", "Filler dodge proc")
     end
@@ -423,6 +419,13 @@ local function EndgameSingleTargetDecision()
     local shout = ShouldRefreshShout()
     if shout then
         return Decision(shout, "Refresh assigned shout in a filler GCD")
+    end
+
+    -- Bloodrage is off the global cooldown and can fund the next Slam/core
+    -- action without clipping the weapon rhythm. Kept last so it never
+    -- replaces a ready core attack, matching the AoE and leveling profiles.
+    if CanUseBloodrage() then
+        return Decision("BLOODRAGE", "Generate Rage")
     end
 
     return nil
